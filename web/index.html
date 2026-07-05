@@ -1,0 +1,39 @@
+<!doctype html>
+<html lang="fr">
+  <head>
+    <meta charset="UTF-8" />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Plan Move — où déménager ?</title>
+  </head>
+  <body>
+    <div id="app">
+      <aside id="sidebar">
+        <header>
+          <h1>Plan Move</h1>
+          <p class="subtitle">Choisir sa commune, critère par critère</p>
+        </header>
+        <div id="recherche-bloc">
+          <input id="recherche" type="search" placeholder="Rechercher une commune…" autocomplete="off" />
+          <div id="recherche-resultats" hidden></div>
+        </div>
+        <div id="mode-toggle"></div>
+        <div id="affichage"></div>
+        <div id="criteres"></div>
+        <footer id="credits">
+          Données : DVF, INSEE, SSMSI, data.education.gouv.fr, transport.data.gouv.fr
+        </footer>
+      </aside>
+      <main id="map"></main>
+      <div id="alerte-carte" hidden></div>
+      <div id="legende">
+        <div class="legende-titre">Score selon vos critères</div>
+        <div class="legende-gradient"></div>
+        <div class="legende-labels"><span>0 — moins adapté</span><span>mieux adapté — 100</span></div>
+        <div class="legende-na"><span class="legende-na-chip"></span> sans données ou hors filtres</div>
+      </div>
+      <section id="fiche" hidden></section>
+    </div>
+    <script type="module" src="/src/main.ts"></script>
+  </body>
+</html>

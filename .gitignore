@@ -1,0 +1,12 @@
+pipeline/data/
+pipeline/tools/
+pipeline/.venv/
+web/node_modules/
+web/dist/
+web/public/data/
+
+# Python / éditeurs / harnais
+__pycache__/
+*.pyc
+.claude/
+.venv/
