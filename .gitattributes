@@ -1,0 +1,4 @@
+# install.sh doit rester en LF pour s'exécuter dans WSL/Linux même cloné sous Windows
+*.sh text eol=lf
+# les scripts Windows en CRLF
+*.bat text eol=crlf

@@ -32,6 +32,28 @@ root, compilez-le et copiez le binaire dans `pipeline/tools/`.)
 
 ## Installation & lancement
 
+### En une commande
+
+```bash
+# Linux / macOS / WSL
+./install.sh                # tout installer + générer les données (long)
+./install.sh --dept 44      # variante rapide : un seul département
+./install.sh --skip-build   # dépendances seulement, sans générer les données
+```
+
+```bat
+REM Windows : détecte WSL et y lance install.sh (voir note Windows ci-dessous)
+install.bat
+```
+
+Puis lancer l'interface : `cd web && npm run dev` → http://localhost:5173
+
+> **Windows** : tippecanoe n'a pas de version Windows native ; l'installation passe par
+> **WSL** (Windows Subsystem for Linux). `install.bat` s'en occupe s'il est présent,
+> sinon il indique comment l'installer (`wsl --install`).
+
+### Manuellement
+
 ```bash
 # 1. Générer les données (~2,5 Go de téléchargements mis en cache dans pipeline/data/)
 cd pipeline
