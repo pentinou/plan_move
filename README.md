@@ -8,23 +8,48 @@ dynamisme démographique… Chaque critère affiche son **niveau actuel** et sa
 Application 100 % statique : un pipeline Python pré-calcule tout, le navigateur fait le
 scoring. Aucun serveur, aucune API externe à l'exécution.
 
-## Démarrage
+## Prérequis
+
+- **Python ≥ 3.12** et **[uv](https://docs.astral.sh/uv/)** (gestion des dépendances Python)
+- **Node.js ≥ 18** et **npm**
+- **tippecanoe** (génération des tuiles vectorielles) — voir ci-dessous
+
+Le pipeline cherche tippecanoe dans `pipeline/tools/tippecanoe` (binaire non versionné),
+et à défaut dans le `PATH`. Selon votre système :
 
 ```bash
-# 1. Générer les données (~2,5 Go de téléchargements en cache dans pipeline/data/)
+# macOS
+brew install tippecanoe
+
+# Linux (si le paquet existe)
+sudo apt install tippecanoe
+# sinon, compiler depuis les sources :
+git clone https://github.com/felt/tippecanoe && cd tippecanoe && make -j && sudo make install
+```
+
+Une fois installé, il est accessible via le `PATH` : rien de plus à faire. (Sans droits
+root, compilez-le et copiez le binaire dans `pipeline/tools/`.)
+
+## Installation & lancement
+
+```bash
+# 1. Générer les données (~2,5 Go de téléchargements mis en cache dans pipeline/data/)
 cd pipeline
-uv run build.py                 # France entière, ~10 min au premier lancement
-uv run build.py --dept 44       # ou : un seul département, pour itérer vite
-uv run build.py --steps dvf,export   # ou : étapes ciblées
+uv sync                         # crée l'environnement et installe les dépendances
+uv run build.py                 # France entière, ~15 min au premier lancement
+#   uv run build.py --dept 44           # variante : un seul département (itération rapide)
+#   uv run build.py --steps dvf,export  # variante : étapes ciblées
 
 # 2. Lancer l'interface
 cd ../web
 npm install
-npm run dev                     # http://localhost:5173
+npm run dev                     # ouvre http://localhost:5173
 ```
 
-Pour rafraîchir les données plus tard : supprimer le fichier concerné dans
-`pipeline/data/` (le cache) et relancer l'étape correspondante + `export`.
+Le premier lancement télécharge et agrège les open data (long) ; les téléchargements sont
+mis en cache dans `pipeline/data/`, les relances sont donc rapides. Pour rafraîchir une
+source plus tard : supprimer son fichier dans `pipeline/data/` et relancer l'étape
+correspondante suivie de `export` (ex. `uv run build.py --steps dvf,export`).
 
 ## Utilisation
 

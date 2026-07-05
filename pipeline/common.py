@@ -43,6 +43,13 @@ def datagouv_resources(dataset_slug: str) -> list[dict]:
     return r.json()["resources"]
 
 
+def tippecanoe_bin() -> str:
+    """Chemin du binaire tippecanoe : celui compilé dans pipeline/tools/ s'il existe,
+    sinon celui du PATH (installé via brew/apt). Voir README § Prérequis."""
+    local = TOOLS / "tippecanoe"
+    return str(local) if local.exists() else "tippecanoe"
+
+
 def remap_plm(col: str) -> str:
     """Expression SQL ramenant les codes d'arrondissement de Paris/Lyon/Marseille
     au code de la commune entière (les contours et l'API Géo ignorent les arrondissements)."""

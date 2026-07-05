@@ -15,7 +15,7 @@ import py7zr
 import shapefile
 from pyproj import Transformer
 
-from common import DATA, TOOLS, WEB_DATA, download
+from common import DATA, WEB_DATA, download, tippecanoe_bin
 
 URL = (
     "https://data.geopf.fr/telechargement/download/ROUTE500/"
@@ -89,7 +89,7 @@ def build(con, dept: str | None = None) -> None:
     out = WEB_DATA / "reseaux.pmtiles"
     subprocess.run(
         [
-            str(TOOLS / "tippecanoe"),
+            tippecanoe_bin(),
             "-o", str(out),
             "--minimum-zoom=4",
             "--maximum-zoom=11",

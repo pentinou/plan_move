@@ -8,7 +8,7 @@ import json
 import shutil
 import subprocess
 
-from common import DATA, TOOLS, WEB_DATA, download
+from common import DATA, WEB_DATA, download, tippecanoe_bin
 
 CONTOURS_URL = "https://etalab-datasets.geo.data.gouv.fr/contours-administratifs/latest/geojson/communes-50m.geojson.gz"
 DEPARTEMENTS_URL = "https://etalab-datasets.geo.data.gouv.fr/contours-administratifs/latest/geojson/departements-100m.geojson.gz"
@@ -74,7 +74,7 @@ def build(con, dept: str | None = None) -> None:
         return
     subprocess.run(
         [
-            str(TOOLS / "tippecanoe"),
+            tippecanoe_bin(),
             "-o", str(out),
             "--layer=communes",
             "--minimum-zoom=4",
