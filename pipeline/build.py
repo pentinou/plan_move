@@ -15,7 +15,8 @@ import time
 import common
 
 STEPS = ["geometries", "dvf", "ssmsi", "etat_civil", "ecoles", "loyers", "filosofi",
-         "taxe_fonciere", "transports", "prenoms", "reseaux", "export"]
+         "taxe_fonciere", "transports", "prenoms", "reseaux", "maires", "bpe",
+         "hopitaux", "logement_social", "export"]
 
 
 def main() -> None:

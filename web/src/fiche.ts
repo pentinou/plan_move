@@ -8,9 +8,12 @@ interface PrenomsData {
 type Series = Record<string, Record<string, [number, number][]>>;
 /** code commune → [nom, maternelle, élémentaire, secteur, ips][] */
 type EcolesListe = Record<string, [string, number, number, string, number | null][]>;
+/** code commune → [nom du maire, libellé nuance politique] */
+type MairesListe = Record<string, [string, string]>;
 
 const seriesCache = new Map<string, Promise<Series>>();
 const ecolesCache = new Map<string, Promise<EcolesListe>>();
+const mairesCache = new Map<string, Promise<MairesListe>>();
 let prenomsPromise: Promise<PrenomsData> | null = null;
 
 const CONTEXTE: [string, string][] = [
@@ -42,6 +45,13 @@ function getEcoles(dept: string): Promise<EcolesListe> {
     ecolesCache.set(dept, fetchJson<EcolesListe>(`data/ecoles/${dept}.json`).catch(() => ({})));
   }
   return ecolesCache.get(dept)!;
+}
+
+function getMaires(dept: string): Promise<MairesListe> {
+  if (!mairesCache.has(dept)) {
+    mairesCache.set(dept, fetchJson<MairesListe>(`data/maires/${dept}.json`).catch(() => ({})));
+  }
+  return mairesCache.get(dept)!;
 }
 
 function getPrenoms(): Promise<PrenomsData> {
@@ -84,10 +94,11 @@ export async function showFiche(code: string, ds: Dataset, onClose?: () => void)
   el.hidden = false;
   el.innerHTML = `<p class="fiche-chargement">Chargement de ${c.n}…</p>`;
 
-  const [series, ecoles, prenoms] = await Promise.all([
+  const [series, ecoles, prenoms, maires] = await Promise.all([
     getSeries(c.d),
     getEcoles(c.d),
     getPrenoms(),
+    getMaires(c.d),
   ]);
   const s = series[code] ?? {};
 
@@ -145,10 +156,16 @@ export async function showFiche(code: string, ds: Dataset, onClose?: () => void)
          .join("")}${liste.length > 20 ? `<li><em>… et ${liste.length - 20} autres</em></li>` : ""}</ul>`
     : `<h3>Écoles de la commune</h3><p><em>Aucune école maternelle/élémentaire dans la commune.</em></p>`;
 
+  const maire = maires[code];
+  const maireHtml = maire?.[0]
+    ? `<p class="fiche-maire">Maire : ${maire[0]}${maire[1] ? ` <span class="fiche-nuance">(${maire[1]})</span>` : ""}</p>`
+    : "";
+
   el.innerHTML = `
     <button id="fiche-close" aria-label="Fermer">×</button>
     <h2>${c.n} <span class="fiche-dept">(${c.d})</span></h2>
     <p class="fiche-pop">${c.p ? c.p.toLocaleString("fr-FR") + " habitants" : ""}</p>
+    ${maireHtml}
     <table class="fiche-table">
       <thead><tr><th>Critère</th><th>Valeur</th><th>Tendance</th><th>Évolution</th></tr></thead>
       <tbody>${critRows || '<tr><td colspan="4"><em>Aucune donnée</em></td></tr>'}</tbody>

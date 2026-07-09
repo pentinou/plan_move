@@ -156,6 +156,48 @@ body,
   padding: 8px 10px;
 }
 
+.theme-titre {
+  margin: 10px 2px 0;
+  font-size: 0.7rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--muted);
+}
+
+.crit-info {
+  flex: none;
+  width: 16px;
+  height: 16px;
+  padding: 0;
+  border: 1px solid var(--border);
+  border-radius: 50%;
+  background: transparent;
+  color: var(--muted);
+  font-size: 0.68rem;
+  font-weight: 700;
+  line-height: 1;
+  cursor: pointer;
+  align-self: center;
+}
+
+.crit-info:hover,
+.crit-info.open {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: #fff;
+}
+
+.crit-desc {
+  margin: 6px 0 2px;
+  font-size: 0.72rem;
+  line-height: 1.4;
+}
+
+.crit-desc-carte {
+  color: var(--muted);
+}
+
 .crit.inactive {
   opacity: 0.55;
 }
@@ -366,6 +408,15 @@ body,
   margin: 0 0 8px;
   color: var(--muted);
   font-size: 0.78rem;
+}
+
+.fiche-maire {
+  margin: -4px 0 8px;
+  font-size: 0.78rem;
+}
+
+.fiche-nuance {
+  color: var(--muted);
 }
 
 #fiche-close {

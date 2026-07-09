@@ -102,6 +102,10 @@ correspondante suivie de `export` (ex. `uv run build.py --steps dvf,export`).
 | Réussite au brevet, valeur ajoutée du collège | [IVAC](https://data.education.gouv.fr/explore/dataset/fr-en-indicateurs-valeur-ajoutee-colleges/) | 2022 → |
 | Réussite au bac (lycées généraux et technologiques) | [IVAL](https://data.education.gouv.fr/explore/dataset/fr-en-indicateurs-de-resultat-des-lycees-gt_v2/) | 2012 → |
 | Distance à un arrêt de transport en commun | [Arrêts de transport en France](https://transport.data.gouv.fr/datasets/arrets-de-transport-en-france) (agrégat GTFS national) | photo actuelle |
+| Orientation politique du maire | [Résultats des municipales 2026](https://www.data.gouv.fr/datasets/elections-municipales-2026-resultats-du-premier-tour) (nuances ministère de l'Intérieur) + [RNE](https://www.data.gouv.fr/datasets/repertoire-national-des-elus-1) (nom du maire) | élection 2026 |
+| Médecins généralistes, crèches, équipements de loisirs | [BPE INSEE](https://www.insee.fr/fr/statistiques/8217537) (types D265, D502, F1xx/F3xx) | millésime 2024 |
+| Distance à l'hôpital, satisfaction des patients | [FINESS géolocalisé](https://www.data.gouv.fr/datasets/finess-extraction-du-fichier-des-etablissements) + [e-Satis HAS](https://www.data.gouv.fr/datasets/indicateurs-de-qualite-et-de-securite-des-soins-recueil-2025) (hospitalisation +48h MCO) | recueils 2022-2025 |
+| Logements sociaux (% des résidences principales) | [RPLS via Caisse des Dépôts](https://opendata.caissedesdepots.fr/explore/dataset/logements-sociaux-dans-les-communes/) | 01/01/2024 |
 | Top 10 des prénoms | [Fichier des prénoms INSEE](https://www.insee.fr/fr/statistiques/8595130) | départemental |
 | Contours communaux, population | [Contours Etalab/IGN](https://www.data.gouv.fr/datasets/contours-administratifs) + [API Géo](https://geo.api.gouv.fr) | millésime courant |
 | Routes principales, voies ferrées (habillage) | [IGN ROUTE 500](https://geoservices.ign.fr/route500) | édition 2021 (dernière) |
@@ -123,6 +127,18 @@ correspondante suivie de `export` (ex. `uv run build.py --steps dvf,export`).
 - **SSMSI** : communes à faibles effectifs sous secret statistique — l'estimation fournie
   par le SSMSI est utilisée quand le décompte exact n'est pas diffusé.
 - **Prénoms** : granularité départementale (l'INSEE ne publie pas par commune).
+- **Orientation politique du maire** : le ministère de l'Intérieur n'attribue de nuance
+  qu'aux communes d'environ 3 500 hab et plus (~2 700 communes classables sur l'axe) ;
+  ailleurs le critère est « sans donnée » (le nom du maire s'affiche quand même dans la
+  fiche). Les nuances « divers » et « régionaliste » ne sont pas classables gauche-droite.
+- **Hôpitaux** : aucun « classement » officiel n'existe en open data (le palmarès du Point
+  est propriétaire) — la note utilisée est **e-Satis** (satisfaction des patients
+  hospitalisés +48h, HAS, /100) de l'établissement MCO noté le plus proche ; distances à
+  vol d'oiseau depuis le centre de la commune.
+- **Logements sociaux** : taux RPLS (logements sociaux / résidences principales), non
+  strictement comparable au taux légal de l'article 55 de la loi SRU (périmètres
+  différents) ; à lire comme un ordre de grandeur face à l'objectif de 20-25 %.
+- **BPE** (médecins, crèches, loisirs) : millésime 2024 uniquement, pas de tendance.
 - Les taux « /1000 hab » utilisent la population légale actuelle, pas celle de chaque année.
 
 ## Architecture

@@ -4,6 +4,8 @@ export interface MetricMeta {
   unit: string;
   dir: 1 | -1; // +1 : plus c'est haut, mieux c'est (sens par défaut, inversable dans l'UI)
   dec: number;
+  theme: string; // groupe d'affichage dans le panneau
+  desc: string; // explication détaillée (info-bulle)
 }
 
 export interface CommuneData {

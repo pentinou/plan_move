@@ -17,23 +17,131 @@ from scipy.stats import rankdata
 
 from common import WEB_DATA
 
+T_IMMO = "Immobilier & fiscalité"
+T_EDUC = "Éducation & petite enfance"
+T_SANTE = "Santé"
+T_SECU = "Sécurité & niveau de vie"
+T_VIE = "Vie locale & dynamisme"
+
 METRICS = [
-    dict(id="prix_maison_m2", label="Prix des maisons", unit="€/m²", dir=-1, window=3, dec=0),
-    dict(id="prix_terrain_m2", label="Prix des terrains à bâtir", unit="€/m²", dir=-1, window=3, dec=0),
-    dict(id="loyer_maison_m2", label="Loyer des maisons", unit="€/m²/mois", dir=-1, window=1, dec=1),
-    dict(id="loyer_appart_m2", label="Loyer des appartements", unit="€/m²/mois", dir=-1, window=1, dec=1),
-    dict(id="ventes_1000hab", label="Marché immobilier", unit="ventes/1000 hab/an", dir=1, window=3, dec=1),
-    dict(id="taxe_fonciere", label="Taxe foncière (taux communal)", unit="%", dir=-1, window=1, dec=1),
-    dict(id="delits_1000hab", label="Délinquance", unit="faits/1000 hab/an", dir=-1, window=3, dec=1),
-    dict(id="revenu_median", label="Revenu médian (niveau de vie)", unit="€/an", dir=1, window=1, dec=0),
-    dict(id="taux_pauvrete", label="Taux de pauvreté", unit="%", dir=-1, window=1, dec=1),
-    dict(id="solde_naturel", label="Solde naturel", unit="‰/an", dir=1, window=3, dec=1),
-    dict(id="nb_ecoles", label="Écoles à ≤10 km", unit="écoles", dir=1, window=1, dec=0),
-    dict(id="ips_ecoles", label="IPS des écoles", unit="indice", dir=1, window=1, dec=0),
-    dict(id="reussite_dnb", label="Réussite au brevet", unit="%", dir=1, window=3, dec=1),
-    dict(id="reussite_bac", label="Réussite au bac", unit="%", dir=1, window=3, dec=1),
-    dict(id="va_college", label="Valeur ajoutée du collège", unit="pts", dir=1, window=3, dec=1),
-    dict(id="dist_arret_tc", label="Distance à un arrêt TC", unit="km", dir=-1, window=1, dec=1),
+    dict(id="prix_maison_m2", label="Prix des maisons", unit="€/m²", dir=-1, window=3, dec=0,
+         theme=T_IMMO,
+         desc="Prix de vente médian des maisons, en € par m², d'après les ventes réelles "
+              "enregistrées chez les notaires (base DVF, lissé sur 3 ans). "
+              "Ne couvre pas l'Alsace-Moselle ni Mayotte."),
+    dict(id="prix_terrain_m2", label="Prix des terrains à bâtir", unit="€/m²", dir=-1, window=3, dec=0,
+         theme=T_IMMO,
+         desc="Prix de vente médian des terrains à bâtir, en € par m² (ventes réelles, base DVF, "
+              "lissé 3 ans). Utile si vous envisagez de faire construire."),
+    dict(id="loyer_maison_m2", label="Loyer des maisons", unit="€/m²/mois", dir=-1, window=1, dec=1,
+         theme=T_IMMO,
+         desc="Loyer mensuel estimé des maisons, en € par m² (Carte des loyers ANIL, construite "
+              "sur des millions d'annonces). Exemple : une maison de 100 m² à 10 €/m² "
+              "se loue environ 1 000 €/mois."),
+    dict(id="loyer_appart_m2", label="Loyer des appartements", unit="€/m²/mois", dir=-1, window=1, dec=1,
+         theme=T_IMMO,
+         desc="Loyer mensuel estimé des appartements, en € par m² "
+              "(Carte des loyers ANIL, d'après les annonces)."),
+    dict(id="ventes_1000hab", label="Marché immobilier", unit="ventes/1000 hab/an", dir=1, window=3, dec=1,
+         theme=T_IMMO,
+         desc="Ventes immobilières par an pour 1 000 habitants (DVF). Mesure la vitalité du "
+              "marché local : plus il y a de transactions, plus il y a d'occasions d'acheter."),
+    dict(id="taxe_fonciere", label="Taxe foncière (taux communal)", unit="%", dir=-1, window=1, dec=1,
+         theme=T_IMMO,
+         desc="Taux de taxe foncière sur le bâti voté par la commune (hors parts intercommunale "
+              "et ordures ménagères). Il s'applique à la moitié de la valeur locative cadastrale "
+              "du bien ; d'une commune à l'autre, l'écart se compte en centaines d'euros par an."),
+    dict(id="part_logements_sociaux", label="Logements sociaux (HLM)", unit="%", dir=1, window=1, dec=1,
+         theme=T_IMMO,
+         desc="Logements sociaux en % des résidences principales (répertoire RPLS). La loi SRU "
+              "impose 20 à 25 % aux communes moyennes et grandes : une commune nettement en "
+              "dessous devra construire des HLM dans les prochaines années, une commune au-dessus "
+              "n'a plus d'obligation."),
+    dict(id="nb_creches", label="Crèches (accueil jeune enfant)", unit="établissements", dir=1, window=1, dec=0,
+         theme=T_EDUC,
+         desc="Établissements d'accueil du jeune enfant dans la commune : crèches collectives et "
+              "familiales, micro-crèches, haltes-garderies (BPE INSEE 2024). Nombre brut : les "
+              "grandes villes en ont mécaniquement plus."),
+    dict(id="nb_ecoles", label="Écoles à ≤10 km", unit="écoles", dir=1, window=1, dec=0,
+         theme=T_EDUC,
+         desc="Écoles maternelles et élémentaires ouvertes à moins de 10 km à vol d'oiseau du "
+              "centre de la commune — l'offre scolaire à proximité, pas seulement dans la "
+              "commune elle-même."),
+    dict(id="ips_ecoles", label="IPS des écoles", unit="indice", dir=1, window=1, dec=0,
+         theme=T_EDUC,
+         desc="IPS = Indice de Position Sociale (Éducation nationale) : milieu social moyen des "
+              "familles des écoles de la commune, d'environ 50 (très défavorisé) à 185 (très "
+              "favorisé), moyenne France ≈ 100. Fortement corrélé aux résultats scolaires. Sans "
+              "école dans la commune, c'est l'école la plus proche (≤ 30 km) qui est retenue."),
+    dict(id="reussite_dnb", label="Réussite au brevet", unit="%", dir=1, window=3, dec=1,
+         theme=T_EDUC,
+         desc="Taux de réussite au brevet des collèges de la commune, lissé 3 ans — ou du collège "
+              "le plus proche (≤ 30 km) si elle n'en a pas (la carte scolaire n'est pas en "
+              "open data)."),
+    dict(id="reussite_bac", label="Réussite au bac", unit="%", dir=1, window=3, dec=1,
+         theme=T_EDUC,
+         desc="Taux de réussite au bac des lycées généraux et technologiques de la commune "
+              "(ou du plus proche à défaut), lissé 3 ans."),
+    dict(id="va_college", label="Valeur ajoutée du collège", unit="pts", dir=1, window=3, dec=1,
+         theme=T_EDUC,
+         desc="Écart entre le taux de réussite au brevet obtenu et celui attendu compte tenu du "
+              "profil social des élèves. Positif = le collège fait mieux que prévu. Complète "
+              "l'IPS : un collège populaire peut avoir une forte valeur ajoutée."),
+    dict(id="medecins_10khab", label="Médecins généralistes", unit="/10 000 hab", dir=1, window=1, dec=1,
+         theme=T_SANTE,
+         desc="Médecins généralistes exerçant dans la commune, pour 10 000 habitants "
+              "(BPE INSEE 2024), moyenne France ≈ 9. Un 0 dans une petite commune n'est pas "
+              "forcément un désert médical : regardez les communes voisines."),
+    dict(id="dist_hopital", label="Distance à l'hôpital", unit="km", dir=-1, window=1, dec=1,
+         theme=T_SANTE,
+         desc="Distance à vol d'oiseau au plus proche hôpital ou clinique pratiquant "
+              "l'hospitalisation complète (médecine, chirurgie, obstétrique) — le temps d'accès "
+              "aux urgences et à la maternité en dépend."),
+    dict(id="note_hopital", label="Satisfaction de l'hôpital le plus proche", unit="/100", dir=1, window=3, dec=1,
+         theme=T_SANTE,
+         desc="Satisfaction des patients hospitalisés plus de 48 h dans l'hôpital le plus "
+              "proche : score e-Satis de la Haute Autorité de Santé, sur 100 (moyenne "
+              "nationale ≈ 74). C'est la seule note officielle publique — il n'existe pas de "
+              "classement des hôpitaux en open data."),
+    dict(id="delits_1000hab", label="Délinquance", unit="faits/1000 hab/an", dir=-1, window=3, dec=1,
+         theme=T_SECU,
+         desc="Violences, vols, cambriolages et dégradations enregistrés par police et "
+              "gendarmerie, pour 1 000 habitants et par an (SSMSI, lissé 3 ans). Les communes "
+              "touristiques ou commerçantes sont mécaniquement gonflées : les faits y sont "
+              "comptés, mais pas les visiteurs dans la population."),
+    dict(id="revenu_median", label="Revenu médian (niveau de vie)", unit="€/an", dir=1, window=1, dec=0,
+         theme=T_SECU,
+         desc="Niveau de vie médian : revenu disponible annuel par « unité de consommation » "
+              "(ajusté de la composition du ménage), source FiLoSoFi INSEE 2021. "
+              "Médiane France ≈ 23 000 €/an."),
+    dict(id="taux_pauvrete", label="Taux de pauvreté", unit="%", dir=-1, window=1, dec=1,
+         theme=T_SECU,
+         desc="Part des habitants sous le seuil de pauvreté (60 % du niveau de vie médian "
+              "national). N'est diffusé que pour ~4 300 communes assez peuplées "
+              "(secret statistique) — les autres restent grises."),
+    dict(id="maire_politique", label="Orientation politique du maire", unit="-2 gauche → +2 droite", dir=1, window=1, dec=0,
+         theme=T_VIE,
+         desc="Orientation de la liste arrivée en tête aux municipales de mars 2026, d'après les "
+              "nuances du ministère de l'Intérieur : -2 extrême gauche, -1 gauche, 0 centre, "
+              "+1 droite, +2 extrême droite. Renseigné pour ~2 700 communes — le ministère "
+              "n'attribue de nuance qu'au-dessus de ~3 500 habitants, et les listes « divers » "
+              "ne sont pas classables. Le nom et l'étiquette du maire figurent dans la fiche de "
+              "chaque commune."),
+    dict(id="solde_naturel", label="Solde naturel", unit="‰/an", dir=1, window=3, dec=1,
+         theme=T_VIE,
+         desc="Naissances moins décès, pour 1 000 habitants et par an. Positif = population "
+              "jeune qui se renouvelle (des familles, des écoles qui restent ouvertes) ; "
+              "négatif = commune vieillissante."),
+    dict(id="dist_arret_tc", label="Distance à un arrêt TC", unit="km", dir=-1, window=1, dec=1,
+         theme=T_VIE,
+         desc="Distance à vol d'oiseau entre le centre de la commune et l'arrêt de transport en "
+              "commun le plus proche (bus, car, tram ou gare — agrégat national des données "
+              "GTFS)."),
+    dict(id="equip_loisirs_10khab", label="Équipements de loisirs", unit="/10 000 hab", dir=1, window=1, dec=1,
+         theme=T_VIE,
+         desc="Équipements culturels et sportifs pour 10 000 habitants : cinémas, bibliothèques, "
+              "conservatoires, musées, salles de spectacle, piscines, salles de remise en forme "
+              "et gymnases (BPE INSEE 2024)."),
 ]
 
 # métriques de contexte : présentes dans les séries (fiche) mais ni scorées ni dans metrics.json
@@ -116,7 +224,8 @@ def build(con, dept: str | None = None) -> None:
     out = {
         "generated": datetime.date.today().isoformat(),
         "metrics": [
-            {"id": m["id"], "label": m["label"], "unit": m["unit"], "dir": m["dir"], "dec": m["dec"]}
+            {"id": m["id"], "label": m["label"], "unit": m["unit"], "dir": m["dir"],
+             "dec": m["dec"], "theme": m["theme"], "desc": m["desc"]}
             for m in METRICS
         ],
         "communes": communes,

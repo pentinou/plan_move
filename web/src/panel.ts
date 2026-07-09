@@ -18,6 +18,13 @@ const DEFAULT_WEIGHTS: Record<string, number> = {
   reussite_bac: 1,
   va_college: 0,
   dist_arret_tc: 2,
+  maire_politique: 0,
+  medecins_10khab: 2,
+  nb_creches: 1,
+  dist_hopital: 2,
+  note_hopital: 1,
+  part_logements_sociaux: 0,
+  equip_loisirs_10khab: 1,
 };
 
 export function initialState(ds: Dataset): AppState {
@@ -74,16 +81,27 @@ export function buildPanel(ds: Dataset, state: AppState, onChange: () => void): 
   });
   critsEl.appendChild(resetRow);
 
+  let themeCourant = "";
   ds.metrics.forEach((m, j) => {
+    if (m.theme && m.theme !== themeCourant) {
+      themeCourant = m.theme;
+      const titre = document.createElement("h3");
+      titre.className = "theme-titre";
+      titre.textContent = m.theme;
+      critsEl.appendChild(titre);
+    }
     const crit = state.crits[j];
     const row = document.createElement("div");
     row.className = "crit";
     row.innerHTML = `
       <div class="crit-head">
         <span class="crit-label" title="${m.unit}">${m.label}</span>
+        <button class="crit-info" aria-expanded="false"
+                title="Qu'est-ce que ce critère et comment le lire ?">?</button>
         <button class="crit-dir"></button>
         <span class="crit-weight"></span>
       </div>
+      <div class="crit-desc" hidden></div>
       <label class="crit-poids" title="Poids du critère dans le score : 0 = ignoré, 5 = très important">
         Poids
         <input type="range" class="crit-slider" min="0" max="5" step="1" value="${crit.weight}"
@@ -100,6 +118,8 @@ export function buildPanel(ds: Dataset, state: AppState, onChange: () => void): 
     const dirBtn = row.querySelector<HTMLButtonElement>(".crit-dir")!;
     const weightEl = row.querySelector<HTMLSpanElement>(".crit-weight")!;
     const slider = row.querySelector<HTMLInputElement>(".crit-slider")!;
+    const infoBtn = row.querySelector<HTMLButtonElement>(".crit-info")!;
+    const descEl = row.querySelector<HTMLDivElement>(".crit-desc")!;
 
     const refresh = () => {
       dirBtn.textContent = crit.dir === 1 ? "positif ↑" : "négatif ↓";
@@ -110,8 +130,21 @@ export function buildPanel(ds: Dataset, state: AppState, onChange: () => void): 
       dirBtn.classList.toggle("dir-negatif", crit.dir === -1);
       weightEl.textContent = crit.weight === 0 ? "ignoré" : `poids ${crit.weight}`;
       row.classList.toggle("inactive", crit.weight === 0 && crit.min === null && crit.max === null);
+      const lectureCarte =
+        crit.weight === 0
+          ? "Poids à 0 : ce critère ne colore pas la carte (les filtres min/max restent actifs)."
+          : crit.dir === 1
+            ? "Sur la carte : une valeur élevée tire la commune vers le bleu, une valeur basse vers le rouge (combiné aux autres critères actifs — mettez les autres poids à 0 pour lire ce critère seul)."
+            : "Sur la carte : une valeur basse tire la commune vers le bleu, une valeur élevée vers le rouge (combiné aux autres critères actifs — mettez les autres poids à 0 pour lire ce critère seul).";
+      descEl.innerHTML = `${m.desc ?? ""}<br><em class="crit-desc-carte">${lectureCarte}</em>`;
     };
     refresh();
+
+    infoBtn.addEventListener("click", () => {
+      descEl.hidden = !descEl.hidden;
+      infoBtn.setAttribute("aria-expanded", String(!descEl.hidden));
+      infoBtn.classList.toggle("open", !descEl.hidden);
+    });
 
     slider.addEventListener("input", () => {
       crit.weight = Number(slider.value);
