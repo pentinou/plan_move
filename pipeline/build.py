@@ -31,9 +31,9 @@ def main() -> None:
         p.error(f"étapes inconnues : {unknown}")
 
     con = common.connect()
-    for step in steps:
+    for i, step in enumerate(steps, 1):
         module = importlib.import_module("export" if step == "export" else f"sources.{step}")
-        print(f"» {step}")
+        print(f"» [{i}/{len(steps)}] {step}")
         t0 = time.time()
         module.build(con, args.dept)
         print(f"  ({time.time() - t0:.0f}s)")

@@ -157,12 +157,31 @@ body,
 }
 
 .theme-titre {
-  margin: 10px 2px 0;
+  margin: 10px 0 0;
+  padding: 2px;
+  border: none;
+  background: transparent;
+  text-align: left;
+  cursor: pointer;
   font-size: 0.7rem;
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.06em;
   color: var(--muted);
+}
+
+.theme-titre:hover {
+  color: var(--text);
+}
+
+.theme-body {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.theme-body[hidden] {
+  display: none;
 }
 
 .crit-info {

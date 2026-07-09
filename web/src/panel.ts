@@ -50,6 +50,10 @@ export function resetToDefaults(ds: Dataset, state: AppState): void {
   });
 }
 
+/** Thèmes repliés par l'utilisateur — conservé entre deux re-rendus du panneau
+ * (réinitialisation comprise), le temps de la session. */
+const themesReplies = new Set<string>();
+
 /** Construit le panneau (toggle de mode + une carte par critère) et appelle
  * `onChange` à chaque modification. Mute `state` en place. */
 export function buildPanel(ds: Dataset, state: AppState, onChange: () => void): void {
@@ -82,13 +86,29 @@ export function buildPanel(ds: Dataset, state: AppState, onChange: () => void): 
   critsEl.appendChild(resetRow);
 
   let themeCourant = "";
+  let themeBody: HTMLElement = critsEl;
   ds.metrics.forEach((m, j) => {
     if (m.theme && m.theme !== themeCourant) {
       themeCourant = m.theme;
-      const titre = document.createElement("h3");
+      const theme = m.theme;
+      const titre = document.createElement("button");
       titre.className = "theme-titre";
-      titre.textContent = m.theme;
+      const body = document.createElement("div");
+      body.className = "theme-body";
+      const applique = () => {
+        const ouvert = !themesReplies.has(theme);
+        body.hidden = !ouvert;
+        titre.textContent = `${ouvert ? "▾" : "▸"} ${theme}`;
+        titre.setAttribute("aria-expanded", String(ouvert));
+      };
+      titre.addEventListener("click", () => {
+        themesReplies.has(theme) ? themesReplies.delete(theme) : themesReplies.add(theme);
+        applique();
+      });
+      applique();
       critsEl.appendChild(titre);
+      critsEl.appendChild(body);
+      themeBody = body;
     }
     const crit = state.crits[j];
     const row = document.createElement("div");
@@ -114,6 +134,7 @@ export function buildPanel(ds: Dataset, state: AppState, onChange: () => void): 
         <input type="number" class="crit-max" placeholder="max" value="${crit.max ?? ""}"
                aria-label="Filtre max ${m.label}">
       </div>`;
+    themeBody.appendChild(row);
 
     const dirBtn = row.querySelector<HTMLButtonElement>(".crit-dir")!;
     const weightEl = row.querySelector<HTMLSpanElement>(".crit-weight")!;
@@ -168,7 +189,5 @@ export function buildPanel(ds: Dataset, state: AppState, onChange: () => void): 
       refresh();
       onChange();
     });
-
-    critsEl.appendChild(row);
   });
 }

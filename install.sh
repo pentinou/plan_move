@@ -57,5 +57,14 @@ info "Dépendances web (npm install)…"
 
 echo
 info "Installation terminée."
-echo "  Lancer l'interface :  cd web && npm run dev   puis ouvrir http://localhost:5173"
-[ "$SKIP_BUILD" -eq 1 ] && echo "  (données non générées : lancez 'cd pipeline && uv run build.py' avant.)"
+echo
+echo "  Pour lancer la carte :"
+echo "      cd web"
+echo "      npm run dev"
+echo
+echo "  puis ouvrir http://localhost:5173 dans le navigateur."
+echo "  (Ctrl+C dans le terminal pour arrêter le serveur.)"
+if [ "$SKIP_BUILD" -eq 1 ]; then
+  echo
+  echo "  ⚠ Données non générées (--skip-build) : lancez d'abord 'cd pipeline && uv run build.py'."
+fi

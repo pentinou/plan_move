@@ -24,11 +24,19 @@ def download(url: str, dest_name: str, *, force: bool = False) -> Path:
     tmp = dest.with_name(dest.name + ".part")
     with httpx.stream("GET", url, follow_redirects=True, timeout=300) as r:
         r.raise_for_status()
+        total = int(r.headers.get("content-length", 0))
+        done = 0
         with open(tmp, "wb") as f:
             for chunk in r.iter_bytes(1 << 20):
                 f.write(chunk)
+                done += len(chunk)
+                if total:  # % borné : total = taille compressée si le serveur gzippe
+                    print(f"\r  ↓ {dest_name}  {min(100, 100 * done // total):3d} % "
+                          f"({done / 1e6:.1f}/{total / 1e6:.1f} Mo)", end="", flush=True)
+                else:  # taille inconnue (certains exports d'API) : juste le volume reçu
+                    print(f"\r  ↓ {dest_name}  {done / 1e6:.1f} Mo", end="", flush=True)
     tmp.rename(dest)
-    print(f"  téléchargé {dest_name} ({dest.stat().st_size / 1e6:.1f} Mo)")
+    print(f"\r  téléchargé {dest_name} ({dest.stat().st_size / 1e6:.1f} Mo)".ljust(76))
     return dest
 
 
