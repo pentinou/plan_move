@@ -492,6 +492,126 @@ body,
   color: var(--muted);
 }
 
+.fiche-astuce {
+  margin: 12px 0 0;
+  font-size: 0.72rem;
+  color: var(--muted);
+}
+
+/* --- comparaison de communes --- */
+#fiche.compare {
+  width: auto;
+  min-width: 500px;
+  max-width: min(880px, calc(100vw - 380px));
+  overflow-x: auto;
+}
+
+.cmp-table {
+  width: 100%;
+  table-layout: fixed;
+  border-collapse: collapse;
+  font-size: 0.8rem;
+}
+
+.cmp-table th,
+.cmp-table td {
+  padding: 4px 6px;
+  border-bottom: 1px solid var(--border);
+  overflow-wrap: break-word;
+}
+
+.cmp-table thead th {
+  position: sticky;
+  top: -14px; /* compense le padding haut de #fiche pour affleurer en défilant */
+  background: var(--bg);
+  z-index: 1;
+  vertical-align: top;
+  text-align: right;
+  padding-top: 6px;
+  box-shadow: 0 1px 0 var(--border);
+}
+
+.cmp-table td.num {
+  text-align: right;
+  white-space: nowrap;
+}
+
+.cmp-table small {
+  color: var(--muted);
+  font-weight: 400;
+}
+
+.cmp-crit {
+  color: var(--text);
+}
+
+.cmp-nom {
+  font-weight: 700;
+}
+
+.cmp-pop {
+  font-size: 0.7rem;
+  font-weight: 400;
+  color: var(--muted);
+}
+
+.cmp-chip {
+  display: inline-block;
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  margin-right: 3px;
+}
+
+.cmp-remove {
+  border: none;
+  background: transparent;
+  color: var(--muted);
+  font-size: 0.95rem;
+  line-height: 1;
+  cursor: pointer;
+  padding: 0 3px;
+}
+
+.cmp-remove:hover {
+  color: #b71c1c;
+}
+
+.cmp-theme td {
+  padding-top: 10px;
+  font-size: 0.68rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--muted);
+  border-bottom: none;
+}
+
+.cmp-score td {
+  background: #f2f7fb;
+}
+
+.cmp-table td.cmp-best {
+  background: #e6f4ea;
+  color: #1b5e20;
+}
+
+.cmp-table td.cmp-worst {
+  background: #fdecea;
+  color: #b71c1c;
+}
+
+.cmp-table td.cmp-best small,
+.cmp-table td.cmp-worst small {
+  color: inherit;
+  opacity: 0.75;
+}
+
+.cmp-legende .cmp-ex {
+  padding: 0 4px;
+  border-radius: 3px;
+}
+
 .prenoms-cols {
   display: flex;
   gap: 24px;

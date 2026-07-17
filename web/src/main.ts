@@ -5,6 +5,7 @@ import "./style.css";
 import { buildPanel, initialState } from "./panel";
 import { computeScores } from "./scoring";
 import { showFiche } from "./fiche";
+import { showCompare, SEL_COLORS } from "./compare";
 import { buildSearch } from "./search";
 import { applyHash, stateToHash } from "./permalink";
 import type { Dataset } from "./types";
@@ -43,6 +44,7 @@ async function init() {
     zoom: 5.3,
     minZoom: 4,
     maxZoom: 13,
+    boxZoom: false, // le zoom rectangle capturait le maj+clic (utilisé pour comparer)
     attributionControl: false,
     style: {
       version: 8,
@@ -113,7 +115,7 @@ async function init() {
           source: "communes",
           "source-layer": "communes",
           paint: {
-            "line-color": "#c2185b",
+            "line-color": ["coalesce", ["feature-state", "selcolor"], "#c2185b"] as any,
             "line-width": ["case", ["boolean", ["feature-state", "selected"], false], 3.5, 0] as any,
           },
         },
@@ -258,24 +260,51 @@ async function init() {
       pending = false;
       scores.current = computeScores(ds, state);
       applyScores();
+      if (selection.length >= 2) renderFiche(); // le comparateur affiche les scores : le tenir à jour
       history.replaceState(null, "", stateToHash(state));
     });
   }
 
-  // commune sélectionnée (recherche ou clic) : contour surligné jusqu'à fermeture de la fiche
-  let selected: string | null = null;
-  function selectCommune(code: string | null) {
-    if (selected !== null) {
-      map.setFeatureState({ source: "communes", sourceLayer: "communes", id: selected }, { selected: false });
-    }
-    selected = code;
-    if (code !== null) {
-      map.setFeatureState({ source: "communes", sourceLayer: "communes", id: code }, { selected: true });
+  // communes sélectionnées (recherche ou clic) : contour coloré jusqu'à fermeture.
+  // Une seule → fiche détaillée ; plusieurs (maj+clic) → panneau de comparaison.
+  let selection: string[] = [];
+  function renderFiche() {
+    const el = document.getElementById("fiche")!;
+    if (selection.length === 0) {
+      el.hidden = true;
+    } else if (selection.length === 1) {
+      showFiche(selection[0], ds, () => setSelection([]));
+    } else {
+      showCompare(
+        selection,
+        ds,
+        state,
+        scores.current,
+        (code) => setSelection(selection.filter((c) => c !== code)),
+        () => setSelection([])
+      );
     }
   }
+  function setSelection(next: string[]) {
+    for (const code of selection) {
+      if (!next.includes(code)) {
+        map.setFeatureState(
+          { source: "communes", sourceLayer: "communes", id: code },
+          { selected: false, selcolor: null }
+        );
+      }
+    }
+    selection = next;
+    selection.forEach((code, i) => {
+      map.setFeatureState(
+        { source: "communes", sourceLayer: "communes", id: code },
+        { selected: true, selcolor: SEL_COLORS[i % SEL_COLORS.length] }
+      );
+    });
+    renderFiche();
+  }
   function openCommune(code: string) {
-    selectCommune(code);
-    showFiche(code, ds, () => selectCommune(null));
+    setSelection([code]);
   }
 
   buildPanel(ds, state, refresh);
@@ -316,7 +345,10 @@ async function init() {
         `<strong>${c?.n ?? f.properties.nom}</strong> (${c?.d ?? ""})<br>` +
           (score === null || score === undefined
             ? "<em>hors filtres ou sans données</em>"
-            : `score : <strong>${score.toFixed(0)}</strong>/100`)
+            : `score : <strong>${score.toFixed(0)}</strong>/100`) +
+          (selection.length > 0 && !selection.includes(code)
+            ? "<br><small>maj+clic : comparer</small>"
+            : "")
       )
       .addTo(map);
   });
@@ -331,7 +363,14 @@ async function init() {
 
   map.on("click", "communes-fill", (e) => {
     const f = e.features?.[0];
-    if (f?.id !== undefined) openCommune(String(f.id));
+    if (f?.id === undefined) return;
+    const code = String(f.id);
+    if (e.originalEvent.shiftKey) {
+      // maj+clic : ajoute la commune à la comparaison, ou l'en retire si déjà là
+      setSelection(selection.includes(code) ? selection.filter((c) => c !== code) : [...selection, code]);
+    } else {
+      setSelection([code]);
+    }
   });
 }
 

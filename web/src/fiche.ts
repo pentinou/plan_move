@@ -33,7 +33,7 @@ function fetchJson<T>(url: string): Promise<T> {
   });
 }
 
-function getSeries(dept: string): Promise<Series> {
+export function getSeries(dept: string): Promise<Series> {
   if (!seriesCache.has(dept)) {
     seriesCache.set(dept, fetchJson<Series>(`data/series/${dept}.json`).catch(() => ({})));
   }
@@ -82,7 +82,7 @@ function sparkline(points: [number, number][]): string {
   </svg>`;
 }
 
-function fmt(v: number | null, dec = 1): string {
+export function fmt(v: number | null, dec = 1): string {
   if (v === null || v === undefined) return "—";
   return v.toLocaleString("fr-FR", { maximumFractionDigits: dec });
 }
@@ -91,7 +91,11 @@ export async function showFiche(code: string, ds: Dataset, onClose?: () => void)
   const el = document.getElementById("fiche")!;
   const c = ds.communes[code];
   if (!c) return;
+  const token = String(Math.random());
+  el.dataset.rendu = token;
   el.hidden = false;
+  el.classList.remove("compare");
+  el.style.width = ""; // largeur posée par le comparateur
   el.innerHTML = `<p class="fiche-chargement">Chargement de ${c.n}…</p>`;
 
   const [series, ecoles, prenoms, maires] = await Promise.all([
@@ -100,6 +104,7 @@ export async function showFiche(code: string, ds: Dataset, onClose?: () => void)
     getPrenoms(),
     getMaires(c.d),
   ]);
+  if (el.dataset.rendu !== token) return; // une autre fiche a pris la main pendant le chargement
   const s = series[code] ?? {};
 
   const critRows = ds.metrics
@@ -172,7 +177,8 @@ export async function showFiche(code: string, ds: Dataset, onClose?: () => void)
     </table>
     ${ctxRows ? `<h3>Contexte</h3><table class="fiche-table"><tbody>${ctxRows}</tbody></table>` : ""}
     ${ecolesHtml}
-    ${prenomsHtml}`;
+    ${prenomsHtml}
+    <p class="fiche-astuce">Maj+clic sur une autre commune pour la comparer à ${c.n}.</p>`;
   document.getElementById("fiche-close")!.addEventListener("click", () => {
     el.hidden = true;
     onClose?.();
