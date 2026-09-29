@@ -87,7 +87,12 @@ export function fmt(v: number | null, dec = 1): string {
   return v.toLocaleString("fr-FR", { maximumFractionDigits: dec });
 }
 
-export async function showFiche(code: string, ds: Dataset, onClose?: () => void): Promise<void> {
+export async function showFiche(
+  code: string,
+  ds: Dataset,
+  onClose?: () => void,
+  pin?: { on: boolean; toggle: () => void }
+): Promise<void> {
   const el = document.getElementById("fiche")!;
   const c = ds.communes[code];
   if (!c) return;
@@ -171,16 +176,22 @@ export async function showFiche(code: string, ds: Dataset, onClose?: () => void)
     <h2>${c.n} <span class="fiche-dept">(${c.d})</span></h2>
     <p class="fiche-pop">${c.p ? c.p.toLocaleString("fr-FR") + " habitants" : ""}</p>
     ${maireHtml}
+    ${pin ? `<button class="pin-btn${pin.on ? " on" : ""}">📌 ${pin.on ? "Épinglée" : "Épingler pour comparer"}</button>` : ""}
+    <p class="fiche-astuce">${
+      pin?.on
+        ? `Cherchez une autre commune ou cliquez sur la carte : elle sera comparée à ${c.n}.`
+        : `Pour comparer : épinglez ${c.n}, puis cherchez ou cliquez une autre commune. Ou maj+clic sur la carte.`
+    }</p>
     <table class="fiche-table">
       <thead><tr><th>Critère</th><th>Valeur</th><th>Tendance</th><th>Évolution</th></tr></thead>
       <tbody>${critRows || '<tr><td colspan="4"><em>Aucune donnée</em></td></tr>'}</tbody>
     </table>
     ${ctxRows ? `<h3>Contexte</h3><table class="fiche-table"><tbody>${ctxRows}</tbody></table>` : ""}
     ${ecolesHtml}
-    ${prenomsHtml}
-    <p class="fiche-astuce">Maj+clic sur une autre commune pour la comparer à ${c.n}.</p>`;
+    ${prenomsHtml}`;
   document.getElementById("fiche-close")!.addEventListener("click", () => {
     el.hidden = true;
     onClose?.();
   });
+  el.querySelector(".pin-btn")?.addEventListener("click", () => pin!.toggle());
 }

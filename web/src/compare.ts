@@ -44,6 +44,8 @@ export async function showCompare(
   ds: Dataset,
   state: AppState,
   scores: Map<string, number | null>,
+  pinned: string[],
+  onTogglePin: (code: string) => void,
   onRemove: (code: string) => void,
   onClose: () => void
 ): Promise<void> {
@@ -64,6 +66,8 @@ export async function showCompare(
     .map(
       (c, i) => `<th class="cmp-com">
         <button class="cmp-remove" data-code="${codes[i]}" title="Retirer ${c.n} de la comparaison">×</button>
+        <button class="cmp-pin${pinned.includes(codes[i]) ? " on" : ""}" data-code="${codes[i]}"
+          title="${pinned.includes(codes[i]) ? "Désépingler" : "Épingler"} ${c.n}">📌</button>
         <span class="cmp-chip" style="background:${SEL_COLORS[i % SEL_COLORS.length]}"></span>
         <span class="cmp-nom">${c.n}</span> <span class="fiche-dept">(${c.d})</span>
         <div class="cmp-pop">${c.p ? c.p.toLocaleString("fr-FR") + " hab." : "&nbsp;"}</div>
@@ -123,6 +127,8 @@ export async function showCompare(
   el.innerHTML = `
     <button id="fiche-close" aria-label="Fermer la comparaison">×</button>
     <h2>Comparaison</h2>
+    <p class="fiche-astuce cmp-astuce">📌 Les communes épinglées restent : cherchez ou cliquez une autre commune
+      pour remplacer les autres. Maj+clic : ajouter ou retirer une commune.</p>
     <table class="cmp-table" style="min-width:${170 + 135 * codes.length}px">
       <colgroup>
         <col style="width:36%">
@@ -131,12 +137,14 @@ export async function showCompare(
       <thead><tr><th class="cmp-crit"></th>${enTetes}</tr></thead>
       <tbody>${lignes.join("")}</tbody>
     </table>
-    <p class="fiche-astuce">Maj+clic sur la carte : ajouter ou retirer une commune.
-      <span class="cmp-legende"><span class="cmp-ex cmp-best">vert</span> meilleure valeur,
+    <p class="fiche-astuce"><span class="cmp-legende"><span class="cmp-ex cmp-best">vert</span> meilleure valeur,
       <span class="cmp-ex cmp-worst">rouge</span> moins bonne, selon le sens de chaque critère.</span></p>`;
 
   document.getElementById("fiche-close")!.addEventListener("click", onClose);
   el.querySelectorAll<HTMLButtonElement>(".cmp-remove").forEach((btn) => {
     btn.addEventListener("click", () => onRemove(btn.dataset.code!));
+  });
+  el.querySelectorAll<HTMLButtonElement>(".cmp-pin").forEach((btn) => {
+    btn.addEventListener("click", () => onTogglePin(btn.dataset.code!));
   });
 }

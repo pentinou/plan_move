@@ -498,6 +498,45 @@ body,
   color: var(--muted);
 }
 
+.pin-btn {
+  margin: 6px 0 0;
+  padding: 4px 10px;
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  background: var(--bg);
+  font-size: 0.8rem;
+  cursor: pointer;
+}
+
+.pin-btn.on {
+  border-color: var(--accent);
+  background: #e3f0fa;
+  color: var(--accent);
+  font-weight: 600;
+}
+
+.fiche-astuce.cmp-astuce,
+.pin-btn + .fiche-astuce {
+  margin: 6px 0 10px;
+}
+
+.cmp-pin {
+  border: none;
+  background: transparent;
+  font-size: 0.8rem;
+  line-height: 1;
+  cursor: pointer;
+  padding: 0 3px;
+  opacity: 0.3;
+  filter: grayscale(1);
+}
+
+.cmp-pin.on,
+.cmp-pin:hover {
+  opacity: 1;
+  filter: none;
+}
+
 /* --- comparaison de communes --- */
 #fiche.compare {
   width: auto;

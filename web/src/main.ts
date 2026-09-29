@@ -271,20 +271,27 @@ async function init() {
   }
 
   // communes sélectionnées (recherche ou clic) : contour coloré jusqu'à fermeture.
-  // Une seule → fiche détaillée ; plusieurs (maj+clic) → panneau de comparaison.
+  // Une seule → fiche détaillée ; plusieurs (maj+clic ou épingle) → panneau de comparaison.
   let selection: string[] = [];
+  // communes épinglées : restent dans la sélection quand on en ouvre une autre
+  let pinned: string[] = [];
   function renderFiche() {
     const el = document.getElementById("fiche")!;
     if (selection.length === 0) {
       el.hidden = true;
     } else if (selection.length === 1) {
-      showFiche(selection[0], ds, () => setSelection([]));
+      showFiche(selection[0], ds, () => setSelection([]), {
+        on: pinned.includes(selection[0]),
+        toggle: () => togglePin(selection[0]),
+      });
     } else {
       showCompare(
         selection,
         ds,
         state,
         scores.current,
+        pinned,
+        togglePin,
         (code) => setSelection(selection.filter((c) => c !== code)),
         () => setSelection([])
       );
@@ -300,6 +307,7 @@ async function init() {
       }
     }
     selection = next;
+    pinned = pinned.filter((c) => next.includes(c)); // retirée ou fermée → désépinglée
     selection.forEach((code, i) => {
       map.setFeatureState(
         { source: "communes", sourceLayer: "communes", id: code },
@@ -309,7 +317,11 @@ async function init() {
     renderFiche();
   }
   function openCommune(code: string) {
-    setSelection([code]);
+    setSelection(pinned.includes(code) ? pinned : [...pinned, code]);
+  }
+  function togglePin(code: string) {
+    pinned = pinned.includes(code) ? pinned.filter((c) => c !== code) : [...pinned, code];
+    renderFiche();
   }
 
   buildPanel(ds, state, refresh);
@@ -351,7 +363,11 @@ async function init() {
           (score === null || score === undefined
             ? "<em>hors filtres ou sans données</em>"
             : `score : <strong>${score.toFixed(0)}</strong>/100`) +
-          (selection.length > 0 && !selection.includes(code)
+          (selection.includes(code)
+            ? ""
+            : pinned.length > 0
+            ? "<br><small>clic : comparer à l'épinglée</small>"
+            : selection.length > 0
             ? "<br><small>maj+clic : comparer</small>"
             : "")
       )
@@ -374,7 +390,7 @@ async function init() {
       // maj+clic : ajoute la commune à la comparaison, ou l'en retire si déjà là
       setSelection(selection.includes(code) ? selection.filter((c) => c !== code) : [...selection, code]);
     } else {
-      setSelection([code]);
+      openCommune(code);
     }
   });
 }
