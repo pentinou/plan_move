@@ -35,7 +35,10 @@ root, compilez-le et copiez le binaire dans `pipeline/tools/`.)
 ### En une commande
 
 ```bash
-# Linux / macOS / WSL
+# Linux / macOS / WSL — recommandé : installe sans sudo ce qui manque
+# (uv, Node ≥ 22.12, tippecanoe ≥ 2.17 dans pipeline/tools/), vérifie les données, lance la carte
+./start.sh                  # options : --dept 44, --rebuild, --update, --no-serve (voir ./start.sh -h)
+
 ./install.sh                # tout installer + générer les données (long)
 ./install.sh --dept 44      # variante rapide : un seul département
 ./install.sh --skip-build   # dépendances seulement, sans générer les données

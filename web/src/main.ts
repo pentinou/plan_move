@@ -226,6 +226,8 @@ async function init() {
   const scores = { current: computeScores(ds, state) };
 
   const alerteEl = document.getElementById("alerte-carte")!;
+  // aucune commune notée dans metrics.json : pipeline incomplet, aucun réglage n'y changera rien
+  const sansDonnees = !Object.values(ds.communes).some((c) => c.vp.some((p) => p !== null));
   function updateAlerte() {
     const allNull = [...scores.current.values()].every((s) => s === null);
     if (!allNull) {
@@ -233,7 +235,10 @@ async function init() {
       return;
     }
     const anyWeight = state.crits.some((c) => c.weight > 0);
-    alerteEl.innerHTML = anyWeight
+    alerteEl.innerHTML = sansDonnees
+      ? `<b>Aucune donnée dans metrics.json.</b> Le pipeline n'a pas (ou mal) généré les données.
+         Relancez <b>./start.sh --rebuild</b> et vérifiez qu'aucune étape n'échoue.`
+      : anyWeight
       ? `<b>Aucune commune n'est colorée.</b> Un filtre <b>min/max</b> exclut toutes les communes
          (souvent un filtre posé sur un critère peu renseigné, comme le taux de pauvreté).
          Videz les cases min/max concernées, ou cliquez sur <b>↺ Réinitialiser les critères</b>.`
