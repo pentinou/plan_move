@@ -43,6 +43,10 @@ _pm_setup_tools() {
         ynh_safe_rm "$src"
     fi
     chown -R "$app:$app" "$data_dir"
+    # nginx (www-data) doit pouvoir traverser $data_dir pour servir site/ :
+    # le chown ci-dessus retire le groupe posé par la ressource data_dir
+    chgrp www-data "$data_dir"
+    chmod 750 "$data_dir"
 }
 
 _pm_setup_systemd() {
