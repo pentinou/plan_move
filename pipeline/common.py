@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import filecmp
+import json
 from pathlib import Path
 
 import duckdb
@@ -15,15 +17,53 @@ WEB_DATA = ROOT.parent / "web" / "public" / "data"
 DB_PATH = DATA / "plan_move.duckdb"
 
 
+# build.py --refresh : un fichier déjà en cache est revalidé auprès de sa source et
+# retéléchargé s'il a changé (sinon le cache est réutilisé sans question).
+REFRESH = False
+SOURCES_META = DATA / "sources.json"   # validateurs HTTP de chaque fichier téléchargé
+CHANGED: list[str] = []                # fichiers (re)téléchargés pendant ce lancement
+
+
+def _validators(headers) -> dict:
+    return {k: headers[k] for k in ("etag", "last-modified", "content-length") if headers.get(k)}
+
+
+def _meta() -> dict:
+    try:
+        return json.loads(SOURCES_META.read_text())
+    except (OSError, ValueError):
+        return {}
+
+
+def _changed_upstream(url: str, dest: Path, known: dict | None) -> bool:
+    """La source a-t-elle changé depuis notre téléchargement ? On n'en lit que les
+    en-têtes (GET coupé aussitôt : certains serveurs refusent HEAD). Sans validateur
+    commun, on compare la taille annoncée à celle du fichier ; à défaut, on considère
+    que la source a changé (mieux vaut retélécharger qu'ignorer une mise à jour)."""
+    with httpx.stream("GET", url, follow_redirects=True, timeout=120) as r:
+        r.raise_for_status()
+        now = _validators(r.headers)
+    known = known or {"content-length": str(dest.stat().st_size)}
+    for k in ("etag", "last-modified", "content-length"):
+        if k in now and k in known:
+            return now[k] != known[k]
+    return True
+
+
 def download(url: str, dest_name: str, *, force: bool = False) -> Path:
-    """Télécharge `url` vers data/<dest_name>, avec cache (ne retélécharge pas si présent)."""
+    """Télécharge `url` vers data/<dest_name>, avec cache (ne retélécharge pas si présent,
+    sauf avec REFRESH quand la source a changé)."""
     dest = DATA / dest_name
     dest.parent.mkdir(parents=True, exist_ok=True)
+    meta = _meta()
     if dest.exists() and not force:
-        return dest
+        if not REFRESH or not _changed_upstream(url, dest, meta.get(dest_name)):
+            return dest
+        print(f"  ↻ {dest_name} a changé à la source : nouveau téléchargement")
     tmp = dest.with_name(dest.name + ".part")
     with httpx.stream("GET", url, follow_redirects=True, timeout=300) as r:
         r.raise_for_status()
+        meta[dest_name] = {"url": url, **_validators(r.headers)}
         total = int(r.headers.get("content-length", 0))
         done = 0
         with open(tmp, "wb") as f:
@@ -35,7 +75,15 @@ def download(url: str, dest_name: str, *, force: bool = False) -> Path:
                           f"({done / 1e6:.1f}/{total / 1e6:.1f} Mo)", end="", flush=True)
                 else:  # taille inconnue (certains exports d'API) : juste le volume reçu
                     print(f"\r  ↓ {dest_name}  {done / 1e6:.1f} Mo", end="", flush=True)
-    tmp.rename(dest)
+    SOURCES_META.write_text(json.dumps(meta, indent=1, ensure_ascii=False))
+    # sources sans validateur HTTP (exports d'API) : retéléchargées à chaque --refresh,
+    # mais signalées comme changées seulement si leur contenu diffère vraiment
+    if dest.exists() and filecmp.cmp(tmp, dest, shallow=False):
+        tmp.unlink()
+        print(f"\r  {dest_name} : inchangé".ljust(76))
+        return dest
+    tmp.replace(dest)
+    CHANGED.append(dest_name)
     print(f"\r  téléchargé {dest_name} ({dest.stat().st_size / 1e6:.1f} Mo)".ljust(76))
     return dest
 

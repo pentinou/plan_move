@@ -72,9 +72,19 @@ npm run dev                     # ouvre http://localhost:5173
 ```
 
 Le premier lancement télécharge et agrège les open data (long) ; les téléchargements sont
-mis en cache dans `pipeline/data/`, les relances sont donc rapides. Pour rafraîchir une
-source plus tard : supprimer son fichier dans `pipeline/data/` et relancer l'étape
-correspondante suivie de `export` (ex. `uv run build.py --steps dvf,export`).
+mis en cache dans `pipeline/data/`, les relances sont donc rapides.
+
+**Mettre les données à jour** : `uv run build.py --refresh` revalide chaque fichier en cache
+auprès de sa source (ETag, date ou taille ; les exports d'API sans ces en-têtes sont
+retéléchargés et comparés octet par octet) et ne retélécharge que ce qui a changé. La liste
+des fichiers mis à jour est écrite dans `pipeline/data/refresh.json`. Les millésimes
+restent listés dans le code (ex. `YEARS` dans `sources/dvf.py`) : une nouvelle année
+publiée demande de les compléter.
+
+**Contrôler avant de publier** : `uv run check.py` vérifie `web/public/data` (nombre de
+communes, critères non vides, cartes PMTiles valides, séries par département) et signale
+une nouvelle année DVF disponible ; `--previous <metrics.json en ligne>` refuse aussi une
+baisse brutale de couverture d'un critère. Code de sortie 1 en cas d'erreur.
 
 ## Utilisation
 
