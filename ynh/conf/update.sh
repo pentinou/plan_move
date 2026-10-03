@@ -14,8 +14,11 @@ compte_rendu() {   # $1 = sujet ; le corps est lu sur l'entrée standard
     local corps
     corps=$(cat)
     printf '%s\n' "$corps"
-    [ -n "${REPORT_EMAIL:-}" ] && printf '%s\n\nDurée : %s min. Journal complet : %s\n' \
-        "$corps" "$(( ($(date +%s) - debut) / 60 ))" "$JOURNAL" | mail -s "$1" "$REPORT_EMAIL"
+    if [ -n "${REPORT_EMAIL:-}" ]; then
+        printf '%s\n\nDurée : %s min. Journal complet : %s\n' \
+            "$corps" "$(( ($(date +%s) - debut) / 60 ))" "$JOURNAL" \
+            | timeout 120 mail -s "$1" "$REPORT_EMAIL" || echo "!! envoi du compte rendu impossible"
+    fi
 }
 
 echo "== $(date '+%F %T') : mise à jour de Plan Move"

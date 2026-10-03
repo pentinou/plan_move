@@ -19,6 +19,7 @@ StandardError=inherit
 TimeoutStartSec=6h
 Nice=10
 
-NoNewPrivileges=yes
+# pas de NoNewPrivileges : l'envoi du compte rendu passe par postdrop, qui est setgid
+# (sinon « mail_queue_enter: Permission denied » en boucle et aucun mail)
 PrivateTmp=yes
 ProtectSystem=full
