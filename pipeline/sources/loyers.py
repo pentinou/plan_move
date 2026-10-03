@@ -10,7 +10,7 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from common import DATA, datagouv_resources, download, remap_plm, replace_source
+from common import DATA, datagouv_resources, download, remap_plm, replace_source, stale
 
 YEARS = [2022, 2023, 2024, 2025]
 
@@ -25,7 +25,7 @@ def _to_utf8(path: Path) -> Path:
     except UnicodeDecodeError:
         pass
     out = path.with_suffix(".utf8.csv")
-    if not out.exists():
+    if stale(out, path):
         out.write_text(path.read_bytes().decode("latin-1"), encoding="utf-8")
     return out
 

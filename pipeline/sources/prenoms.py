@@ -6,20 +6,33 @@ département pour la dernière année disponible.
 from __future__ import annotations
 
 import json
-import zipfile
+import re
 
-from common import DATA, WEB_DATA, download
+import httpx
 
-URL = "https://www.insee.fr/fr/statistiques/fichier/8595130/prenoms-2024-dpt-allege_csv.zip"
+from common import DATA, WEB_DATA, download, extract_zip
+
+PAGE = "https://www.insee.fr/fr/statistiques/8595130"
 TOP_N = 10
 
 
+def _resolve() -> str:
+    """Adresse du fichier départemental « allégé » le plus récent : l'INSEE remplace
+    l'édition précédente sur la même page (prenoms-2024-… puis prenoms-2025-…) et
+    l'ancienne adresse renvoie alors une erreur 500."""
+    r = httpx.get(PAGE, timeout=60, follow_redirects=True)
+    r.raise_for_status()
+    noms = re.findall(r"fichier/\d+/prenoms-(\d{4})-dpt-allege_csv\.zip", r.text)
+    if not noms:
+        raise RuntimeError(f"prénoms : fichier départemental introuvable sur {PAGE}")
+    annee = max(noms)
+    return f"https://www.insee.fr/fr/statistiques/fichier/8595130/prenoms-{annee}-dpt-allege_csv.zip"
+
+
 def build(con, dept: str | None = None) -> None:
-    zip_path = download(URL, "prenoms/prenoms_dpt.zip")
+    zip_path = download(_resolve(), "prenoms/prenoms_dpt.zip")
     out_dir = DATA / "prenoms" / "extrait"
-    if not out_dir.exists():
-        with zipfile.ZipFile(zip_path) as z:
-            z.extractall(out_dir)
+    extract_zip(zip_path, out_dir)
     # un CSV par département : sexe;prenom;periode;dpt;valeur
     con.execute(f"""
         CREATE OR REPLACE TEMP TABLE prenoms AS
