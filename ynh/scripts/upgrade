@@ -1,0 +1,19 @@
+#!/bin/bash
+
+source _common.sh
+source /usr/share/yunohost/helpers
+
+ynh_script_progression "Mise à jour du code (GitHub, branche $BRANCH)..."
+_pm_setup_code
+
+ynh_script_progression "Mise à jour des outils..."
+_pm_setup_tools
+
+ynh_script_progression "Configuration du serveur web et de la mise à jour mensuelle..."
+ynh_config_add_nginx
+_pm_setup_systemd
+
+# le code a pu changer (carte, calculs) : on reconstruit et republie, en arrière-plan
+systemctl start --no-block "$app-update.service"
+
+ynh_script_progression "Mise à jour de $app terminée ; le site sera republié d'ici une heure"

@@ -1,0 +1,61 @@
+#:schema https://raw.githubusercontent.com/YunoHost/apps/master/schemas/manifest.v2.schema.json
+
+packaging_format = 2
+
+id = "planmove"
+name = "Plan Move"
+description.fr = "Carte de France par commune pour choisir où déménager (open data mis à jour chaque mois)"
+description.en = "Map of French municipalities to choose where to move (open data refreshed monthly)"
+
+version = "0.1~ynh1"
+maintainers = ["pentinou"]
+
+[upstream]
+license = "MIT"
+code = "https://github.com/pentinou/plan_move"
+
+[integration]
+yunohost = ">= 12.1"
+helpers_version = "2.1"
+architectures = ["amd64"]
+multi_instance = false
+ldap = "not_relevant"
+sso = "not_relevant"
+disk = "6G"
+ram.build = "2G"
+ram.runtime = "50M"
+
+[install]
+    [install.domain]
+    type = "domain"
+
+    [install.path]
+    type = "path"
+    default = "/"
+
+    [install.init_main_permission]
+    type = "group"
+    default = "visitors"
+
+    [install.report_email]
+    ask.fr = "Adresse qui reçoit le compte rendu de la mise à jour mensuelle"
+    type = "email"
+
+[resources]
+    [resources.system_user]
+
+    [resources.install_dir]
+
+    [resources.data_dir]
+    # nginx (www-data) sert le site publié depuis $data_dir/site
+    group = "www-data:r-x"
+
+    [resources.permissions]
+    main.url = "/"
+
+    [resources.apt]
+    # tippecanoe n'est pas packagé dans Debian 12 : compilé depuis les sources
+    packages = "git, rsync, bsd-mailx, build-essential, libsqlite3-dev, zlib1g-dev"
+
+    [resources.nodejs]
+    version = "22"

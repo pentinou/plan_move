@@ -1,0 +1,28 @@
+#!/bin/bash
+
+source _common.sh
+source /usr/share/yunohost/helpers
+
+ynh_script_progression "Récupération du code (GitHub, branche $BRANCH)..."
+_pm_setup_code
+
+ynh_script_progression "Outils : Python 3.12, dépendances, compilation de tippecanoe (10-20 min)..."
+_pm_setup_tools
+
+# En attendant la première génération des données (environ une heure)
+cat > "$data_dir/site/index.html" <<'HTML'
+<!doctype html><meta charset="utf-8"><title>Plan Move</title>
+<body style="font:16px system-ui;max-width:34em;margin:4em auto;padding:0 1em">
+<h1>Plan Move arrive</h1><p>La première génération des données (open data de toute la France)
+est en cours : comptez environ une heure. Rechargez la page plus tard.</p>
+HTML
+chown -R "$app:$app" "$data_dir/site"
+
+ynh_script_progression "Configuration du serveur web et de la mise à jour mensuelle..."
+ynh_config_add_nginx
+_pm_setup_systemd
+
+ynh_script_progression "Lancement de la première génération des données (en arrière-plan)..."
+systemctl start --no-block "$app-update.service"
+
+ynh_script_progression "Installation de $app terminée ; compte rendu par mail à la fin de la génération"

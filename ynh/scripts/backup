@@ -1,0 +1,11 @@
+#!/bin/bash
+
+source _common.sh
+source /usr/share/yunohost/helpers
+
+# Rien d'irremplaçable : le code se reclone, les open data se retéléchargent et le
+# site se régénère (environ une heure). On ne sauvegarde que la configuration système.
+ynh_backup "/etc/nginx/conf.d/$domain.d/$app.conf"
+ynh_backup "/etc/systemd/system/$app-update.service"
+ynh_backup "/etc/systemd/system/$app-update.timer"
+ynh_backup "/etc/logrotate.d/$app"

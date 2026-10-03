@@ -1,0 +1,24 @@
+[Unit]
+Description=Plan Move : mise à jour mensuelle des données (open data → carte)
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+User=__APP__
+Group=__APP__
+WorkingDirectory=__INSTALL_DIR__/
+Environment="PATH=__PATH_WITH_NODEJS__"
+Environment=INSTALL_DIR=__INSTALL_DIR__
+Environment=DATA_DIR=__DATA_DIR__
+Environment=REPORT_EMAIL=__REPORT_EMAIL__
+Environment=HOME=__DATA_DIR__
+ExecStart=/bin/bash __INSTALL_DIR__/ynh/conf/update.sh
+StandardOutput=append:/var/log/__APP__/update.log
+StandardError=inherit
+TimeoutStartSec=6h
+Nice=10
+
+NoNewPrivileges=yes
+PrivateTmp=yes
+ProtectSystem=full

@@ -1,0 +1,10 @@
+[Unit]
+Description=Plan Move : mise à jour des données le 1er de chaque mois
+
+[Timer]
+OnCalendar=*-*-01 03:00:00
+# serveur éteint à l'heure prévue : la mise à jour part au démarrage suivant
+Persistent=true
+
+[Install]
+WantedBy=timers.target

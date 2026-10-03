@@ -1,0 +1,20 @@
+#!/bin/bash
+
+source _common.sh
+source /usr/share/yunohost/helpers
+
+ynh_script_progression "Récupération du code et des outils..."
+_pm_setup_code
+_pm_setup_tools
+
+ynh_restore "/etc/nginx/conf.d/$domain.d/$app.conf"
+ynh_restore "/etc/systemd/system/$app-update.service"
+ynh_restore "/etc/systemd/system/$app-update.timer"
+ynh_restore "/etc/logrotate.d/$app"
+mkdir -p "/var/log/$app" && chown -R "$app:$app" "/var/log/$app"
+systemctl daemon-reload
+systemctl enable --quiet --now "$app-update.timer"
+ynh_systemctl --service=nginx --action=reload
+
+ynh_script_progression "Régénération des données en arrière-plan (environ une heure)..."
+systemctl start --no-block "$app-update.service"
