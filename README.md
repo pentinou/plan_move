@@ -86,6 +86,10 @@ communes, critères non vides, cartes PMTiles valides, séries par département)
 une nouvelle année DVF disponible ; `--previous <metrics.json en ligne>` refuse aussi une
 baisse brutale de couverture d'un critère. Code de sortie 1 en cas d'erreur.
 
+**Petite machine** : `PLANMOVE_DUCKDB_MEMORY=1GB` plafonne la mémoire de DuckDB (au-delà,
+il écrit sur disque dans `pipeline/data/duckdb-tmp/`) et `PLANMOVE_DUCKDB_THREADS=2`
+réduit sa mémoire de travail. Mesuré : environ 1,3 Go au pic pour tout le pipeline.
+
 ## Utilisation
 
 - **Sliders** : poids de chaque critère (0 = ignoré) dans le score composite 0-100.

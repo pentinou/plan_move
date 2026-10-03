@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import filecmp
 import json
+import os
 import shutil
 import zipfile
 from pathlib import Path
@@ -139,6 +140,15 @@ def remap_plm(col: str) -> str:
 def connect() -> duckdb.DuckDBPyConnection:
     DATA.mkdir(parents=True, exist_ok=True)
     con = duckdb.connect(DB_PATH)
+    # Petites machines : PLANMOVE_DUCKDB_MEMORY (ex. « 1GB ») plafonne la RAM de DuckDB,
+    # qui écrit alors ses calculs intermédiaires sur disque au lieu de remplir la mémoire
+    # (sans limite, il s'autorise 80 % de la RAM). PLANMOVE_DUCKDB_THREADS réduit aussi
+    # la mémoire de travail (un tampon par fil).
+    con.execute(f"SET temp_directory = '{DATA / 'duckdb-tmp'}'")
+    if os.environ.get("PLANMOVE_DUCKDB_MEMORY"):
+        con.execute(f"SET memory_limit = '{os.environ['PLANMOVE_DUCKDB_MEMORY']}'")
+    if os.environ.get("PLANMOVE_DUCKDB_THREADS"):
+        con.execute(f"SET threads = {int(os.environ['PLANMOVE_DUCKDB_THREADS'])}")
     con.execute("""
         CREATE TABLE IF NOT EXISTS metrics (
             source     VARCHAR NOT NULL,
