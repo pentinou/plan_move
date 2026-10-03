@@ -7,9 +7,7 @@ Un coût annuel réel pour un propriétaire, qui varie fortement d'une commune �
 
 from __future__ import annotations
 
-import httpx
-
-from common import DATA, replace_source
+from common import download, replace_source
 
 EXPORT_URL = (
     "https://data.ofgl.fr/api/explore/v2.1/catalog/datasets/rei/exports/csv"
@@ -18,15 +16,7 @@ EXPORT_URL = (
 
 
 def build(con, dept: str | None = None) -> None:
-    dest = DATA / "taxe_fonciere" / "taux_fb_communal.csv"
-    dest.parent.mkdir(parents=True, exist_ok=True)
-    if not dest.exists():
-        with httpx.stream("GET", EXPORT_URL, timeout=300, follow_redirects=True) as r:
-            r.raise_for_status()
-            with open(dest, "wb") as f:
-                for chunk in r.iter_bytes(1 << 20):
-                    f.write(chunk)
-        print(f"  téléchargé {dest.name} ({dest.stat().st_size / 1e6:.1f} Mo)")
+    dest = download(EXPORT_URL, "taxe_fonciere/taux_fb_communal.csv")
 
     dept_filter = f"AND idcom LIKE '{dept}%'" if dept else ""
     replace_source(con, "taxe_fonciere", f"""

@@ -9,13 +9,14 @@ Routes retenues : type autoroutier, liaisons principales et régionales
 from __future__ import annotations
 
 import json
+import shutil
 import subprocess
 
 import py7zr
 import shapefile
 from pyproj import Transformer
 
-from common import DATA, WEB_DATA, download, tippecanoe_bin
+from common import DATA, WEB_DATA, download, stale, tippecanoe_bin
 
 URL = (
     "https://data.geopf.fr/telechargement/download/ROUTE500/"
@@ -59,7 +60,8 @@ def _to_ndjson(shp_path, ndjson_path, props_fn) -> int:
 def build(con, dept: str | None = None) -> None:
     archive = download(URL, "reseaux/route500.7z")
     shp_dir = DATA / "reseaux" / "shp"
-    if not shp_dir.exists():
+    if stale(shp_dir, archive):
+        shutil.rmtree(shp_dir, ignore_errors=True)
         with py7zr.SevenZipFile(archive) as z:
             targets = [n for n in z.getnames()
                        if "TRONCON_ROUTE" in n or "TRONCON_VOIE_FERREE" in n]

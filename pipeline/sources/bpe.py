@@ -12,9 +12,7 @@ garder que GEO_OBJECT = 'COM' (les agrégats PLM 75056/13055/69123 y sont déjà
 
 from __future__ import annotations
 
-import zipfile
-
-from common import DATA, download, replace_source
+from common import DATA, download, extract_zip, replace_source
 
 URL = "https://www.insee.fr/fr/statistiques/fichier/8217527/DS_BPE_CSV_FR.zip"
 ANNEE = 2024
@@ -24,9 +22,7 @@ LOISIRS = ("F303", "F305", "F307", "F312", "F315", "F101", "F120", "F121")
 def build(con, dept: str | None = None) -> None:
     zip_path = download(URL, "bpe/DS_BPE_CSV_FR.zip")
     out_dir = DATA / "bpe" / "extrait"
-    if not out_dir.exists():
-        with zipfile.ZipFile(zip_path) as z:
-            z.extractall(out_dir)
+    extract_zip(zip_path, out_dir)
     csv = next(p for p in out_dir.iterdir() if p.name.endswith("_data.csv"))
 
     where_dept = f"AND code_insee LIKE '{dept}%'" if dept else ""

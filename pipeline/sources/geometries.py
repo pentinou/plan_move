@@ -8,7 +8,7 @@ import json
 import shutil
 import subprocess
 
-from common import DATA, WEB_DATA, download, tippecanoe_bin
+from common import DATA, WEB_DATA, download, stale, tippecanoe_bin
 
 CONTOURS_URL = "https://etalab-datasets.geo.data.gouv.fr/contours-administratifs/latest/geojson/communes-50m.geojson.gz"
 DEPARTEMENTS_URL = "https://etalab-datasets.geo.data.gouv.fr/contours-administratifs/latest/geojson/departements-100m.geojson.gz"
@@ -16,7 +16,7 @@ GEO_API_URL = "https://geo.api.gouv.fr/communes?fields=code,nom,population,centr
 
 
 def _gunzip(src, dest):
-    if dest.exists():
+    if not stale(dest, src):
         return dest
     with gzip.open(src, "rb") as f_in, open(dest, "wb") as f_out:
         shutil.copyfileobj(f_in, f_out)
@@ -32,7 +32,7 @@ def _est_arrondissement(code: str) -> bool:
 def _filtrer_arrondissements(src, dest):
     """Le fichier de contours contient Paris/Lyon/Marseille ET leurs arrondissements
     municipaux, superposés : on ne garde que les communes entières."""
-    if dest.exists():
+    if not stale(dest, src):
         return dest
     geo = json.loads(src.read_text())
     avant = len(geo["features"])

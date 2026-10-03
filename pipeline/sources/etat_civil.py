@@ -8,20 +8,29 @@ Dépend de la table `communes` (étape geometries).
 
 from __future__ import annotations
 
-import zipfile
+import httpx
 
-from common import DATA, download, replace_source
+from common import DATA, download, extract_zip, replace_source
 
-NAIS_URL = "https://api.insee.fr/melodi/file/DS_ETAT_CIVIL_NAIS_COMMUNES/DS_ETAT_CIVIL_NAIS_COMMUNES_CSV_FR"
-DECES_URL = "https://api.insee.fr/melodi/file/DS_ETAT_CIVIL_DECES_COMMUNES/DS_ETAT_CIVIL_DECES_COMMUNES_CSV_FR"
+NAIS = "DS_ETAT_CIVIL_NAIS_COMMUNES"
+DECES = "DS_ETAT_CIVIL_DECES_COMMUNES"
 
 
-def _data_csv(url: str, name: str) -> str:
-    zip_path = download(url, f"etat_civil/{name}.zip")
+def _resolve(dataset: str) -> str:
+    """Adresse du CSV d'un jeu Melodi, lue dans son catalogue : le nom du fichier porte
+    le millésime (…_2025_CSV_FR) et change à chaque publication annuelle."""
+    r = httpx.get(f"https://api.insee.fr/melodi/catalog/{dataset}", timeout=60, follow_redirects=True)
+    r.raise_for_status()
+    for p in r.json().get("product", []):
+        if p.get("format") == "CSV" and p.get("accessURL"):
+            return p["accessURL"]
+    raise RuntimeError(f"Melodi : pas de fichier CSV pour {dataset}")
+
+
+def _data_csv(dataset: str, name: str) -> str:
+    zip_path = download(_resolve(dataset), f"etat_civil/{name}.zip")
     out_dir = DATA / "etat_civil" / name
-    if not out_dir.exists():
-        with zipfile.ZipFile(zip_path) as z:
-            z.extractall(out_dir)
+    extract_zip(zip_path, out_dir)
     csvs = [p for p in out_dir.iterdir() if p.name.endswith("_data.csv")]
     if not csvs:
         raise RuntimeError(f"pas de fichier _data.csv dans {zip_path}")
@@ -29,8 +38,8 @@ def _data_csv(url: str, name: str) -> str:
 
 
 def build(con, dept: str | None = None) -> None:
-    nais_csv = _data_csv(NAIS_URL, "naissances")
-    deces_csv = _data_csv(DECES_URL, "deces")
+    nais_csv = _data_csv(NAIS, "naissances")
+    deces_csv = _data_csv(DECES, "deces")
     where_dept = f"AND GEO LIKE '{dept}%'" if dept else ""
 
     for table, csv in (("ec_nais", nais_csv), ("ec_deces", deces_csv)):

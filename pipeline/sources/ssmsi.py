@@ -9,6 +9,8 @@ Sous-indicateurs exportés pour la fiche : violences, vols, cambriolages.
 
 from __future__ import annotations
 
+import re
+
 from common import datagouv_resources, download, replace_source
 
 DATASET = "bases-statistiques-communale-departementale-et-regionale-de-la-delinquance-enregistree-par-la-police-et-la-gendarmerie-nationales"
@@ -31,18 +33,24 @@ def _resolve_url() -> str:
 
 def build(con, dept: str | None = None) -> None:
     parquet = download(_resolve_url(), "ssmsi/delinquance_communale.parquet")
-    where_dept = f"AND CODGEO_2025 LIKE '{dept}%'" if dept else ""
+    # La colonne du code commune porte le millésime du code officiel géographique
+    # (CODGEO_2025, puis CODGEO_2026 après les fusions de communes) : on la cherche.
+    cols = [c[0] for c in con.execute(f"DESCRIBE SELECT * FROM read_parquet('{parquet}')").fetchall()]
+    geo = next((c for c in cols if re.fullmatch(r"CODGEO_\d{4}", c)), None)
+    if geo is None:
+        raise RuntimeError(f"SSMSI : colonne CODGEO_<année> introuvable parmi {cols}")
+    where_dept = f"AND {geo} LIKE '{dept}%'" if dept else ""
     # la base contient à la fois les arrondissements de Paris/Lyon/Marseille ET
     # l'agrégat commune (75056, 13055, 69123) : on exclut les arrondissements
     base = f"""
-        SELECT CODGEO_2025 AS code_insee, annee,
+        SELECT {geo} AS code_insee, annee,
                coalesce(nombre, complement_info_nombre) AS faits,
                insee_pop, indicateur
         FROM read_parquet('{parquet}')
         WHERE insee_pop > 0 {where_dept}
-          AND NOT (CODGEO_2025 BETWEEN '75101' AND '75120'
-                   OR CODGEO_2025 BETWEEN '13201' AND '13216'
-                   OR CODGEO_2025 BETWEEN '69381' AND '69389')
+          AND NOT ({geo} BETWEEN '75101' AND '75120'
+                   OR {geo} BETWEEN '13201' AND '13216'
+                   OR {geo} BETWEEN '69381' AND '69389')
     """
     replace_source(con, "ssmsi", f"""
         WITH base AS ({base})

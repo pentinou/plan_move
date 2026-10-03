@@ -4,6 +4,8 @@ from __future__ import annotations
 
 import filecmp
 import json
+import shutil
+import zipfile
 from pathlib import Path
 
 import duckdb
@@ -35,7 +37,7 @@ def _meta() -> dict:
         return {}
 
 
-def _changed_upstream(url: str, dest: Path, known: dict | None) -> bool:
+def _changed_upstream(url: str, dest: Path, known: dict | None) -> bool | None:
     """La source a-t-elle changé depuis notre téléchargement ? On n'en lit que les
     en-têtes (GET coupé aussitôt : certains serveurs refusent HEAD). Sans validateur
     commun, on compare la taille annoncée à celle du fichier ; à défaut, on considère
@@ -47,7 +49,7 @@ def _changed_upstream(url: str, dest: Path, known: dict | None) -> bool:
     for k in ("etag", "last-modified", "content-length"):
         if k in now and k in known:
             return now[k] != known[k]
-    return True
+    return None   # impossible à dire sans retélécharger
 
 
 def download(url: str, dest_name: str, *, force: bool = False) -> Path:
@@ -57,9 +59,13 @@ def download(url: str, dest_name: str, *, force: bool = False) -> Path:
     dest.parent.mkdir(parents=True, exist_ok=True)
     meta = _meta()
     if dest.exists() and not force:
-        if not REFRESH or not _changed_upstream(url, dest, meta.get(dest_name)):
+        if not REFRESH:
             return dest
-        print(f"  ↻ {dest_name} a changé à la source : nouveau téléchargement")
+        change = _changed_upstream(url, dest, meta.get(dest_name))
+        if change is False:
+            return dest
+        print(f"  ↻ {dest_name} : " + ("a changé à la source, nouveau téléchargement" if change
+                                      else "la source ne dit pas si elle a changé, téléchargement pour comparer"))
     tmp = dest.with_name(dest.name + ".part")
     with httpx.stream("GET", url, follow_redirects=True, timeout=300) as r:
         r.raise_for_status()
@@ -86,6 +92,20 @@ def download(url: str, dest_name: str, *, force: bool = False) -> Path:
     CHANGED.append(dest_name)
     print(f"\r  téléchargé {dest_name} ({dest.stat().st_size / 1e6:.1f} Mo)".ljust(76))
     return dest
+
+
+def stale(derived: Path, source: Path) -> bool:
+    """Un fichier ou dossier dérivé (archive décompressée, conversion) est à refaire s'il
+    manque ou s'il est plus ancien que sa source, par exemple retéléchargée par --refresh."""
+    return not derived.exists() or derived.stat().st_mtime < source.stat().st_mtime
+
+
+def extract_zip(zip_path: Path, out_dir: Path) -> None:
+    """Décompresse zip_path dans out_dir, sauf si l'extraction est déjà à jour."""
+    if stale(out_dir, zip_path):
+        shutil.rmtree(out_dir, ignore_errors=True)
+        with zipfile.ZipFile(zip_path) as z:
+            z.extractall(out_dir)
 
 
 def datagouv_resources(dataset_slug: str) -> list[dict]:

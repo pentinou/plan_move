@@ -9,9 +9,7 @@ disponible pour presque toutes les communes.
 
 from __future__ import annotations
 
-import zipfile
-
-from common import DATA, download, remap_plm, replace_source
+from common import DATA, download, extract_zip, remap_plm, replace_source
 
 URL = "https://www.insee.fr/fr/statistiques/fichier/7756729/base-cc-filosofi-2021-geo2025_csv.zip"
 MEASURES = {"MED_SL": "revenu_median", "PR_MD60": "taux_pauvrete"}
@@ -20,9 +18,7 @@ MEASURES = {"MED_SL": "revenu_median", "PR_MD60": "taux_pauvrete"}
 def build(con, dept: str | None = None) -> None:
     zip_path = download(URL, "filosofi/filosofi_2021.zip")
     out_dir = DATA / "filosofi" / "extrait"
-    if not out_dir.exists():
-        with zipfile.ZipFile(zip_path) as z:
-            z.extractall(out_dir)
+    extract_zip(zip_path, out_dir)
     csv = next(p for p in out_dir.iterdir() if p.name.endswith("_data.csv"))
 
     where_dept = f"AND {remap_plm('GEO')} LIKE '{dept}%'" if dept else ""
