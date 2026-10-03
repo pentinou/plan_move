@@ -238,18 +238,22 @@ def build(con, dept: str | None = None) -> None:
     decs = {m["id"]: m["dec"] for m in METRICS}
     series_dir = WEB_DATA / "series"
     series_dir.mkdir(exist_ok=True)
-    rows = con.execute("""
-        SELECT c.dept, m.code_insee, m.metric, m.annee, m.valeur
-        FROM metrics m JOIN communes c USING (code_insee)
-        ORDER BY c.dept, m.code_insee, m.metric, m.annee
-    """).fetchall()
-    by_dept: dict[str, dict] = {}
-    for d, code, metric, annee, valeur in rows:
-        if valeur is None:
-            continue
-        by_dept.setdefault(d, {}).setdefault(code, {}).setdefault(metric, []).append(
-            [int(annee), round(float(valeur), decs.get(metric, 1))]
-        )
-    for d, data in by_dept.items():
-        (series_dir / f"{d}.json").write_text(json.dumps(data, ensure_ascii=False, separators=(",", ":")))
-    print(f"  [export] séries : {len(by_dept)} départements")
+    # Un département à la fois : charger les ~5 millions de lignes d'un coup coûtait
+    # plus de 2 Go de mémoire Python (trop pour une petite machine).
+    n_depts = 0
+    for (d,) in con.execute("SELECT DISTINCT dept FROM communes ORDER BY dept").fetchall():
+        rows = con.execute("""
+            SELECT m.code_insee, m.metric, m.annee, m.valeur
+            FROM metrics m JOIN communes c USING (code_insee)
+            WHERE c.dept = ? AND m.valeur IS NOT NULL
+            ORDER BY m.code_insee, m.metric, m.annee
+        """, [d]).fetchall()
+        data: dict[str, dict] = {}
+        for code, metric, annee, valeur in rows:
+            data.setdefault(code, {}).setdefault(metric, []).append(
+                [int(annee), round(float(valeur), decs.get(metric, 1))]
+            )
+        if data:
+            (series_dir / f"{d}.json").write_text(json.dumps(data, ensure_ascii=False, separators=(",", ":")))
+            n_depts += 1
+    print(f"  [export] séries : {n_depts} départements")
