@@ -13,6 +13,14 @@ Environment=INSTALL_DIR=__INSTALL_DIR__
 Environment=DATA_DIR=__DATA_DIR__
 Environment=REPORT_EMAIL=__REPORT_EMAIL__
 Environment=HOME=__DATA_DIR__
+# Le serveur n'a que 3,8 Go : DuckDB plafonné (au-delà il écrit sur disque) …
+Environment=PLANMOVE_DUCKDB_MEMORY=1GB
+Environment=PLANMOVE_DUCKDB_THREADS=2
+# … et le service entier aussi : ralenti et poussé vers le swap au-delà de 2 Go,
+# arrêté net à 2,6 Go — le reste du serveur garde toujours de la mémoire.
+MemoryHigh=2G
+MemoryMax=2600M
+MemorySwapMax=1G
 ExecStart=/bin/bash __INSTALL_DIR__/ynh/conf/update.sh
 StandardOutput=append:/var/log/__APP__/update.log
 StandardError=inherit
