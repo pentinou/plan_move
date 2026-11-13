@@ -6,6 +6,7 @@ import filecmp
 import json
 import os
 import shutil
+import time
 import zipfile
 from pathlib import Path
 
@@ -25,6 +26,43 @@ DB_PATH = DATA / "plan_move.duckdb"
 REFRESH = False
 SOURCES_META = DATA / "sources.json"   # validateurs HTTP de chaque fichier téléchargé
 CHANGED: list[str] = []                # fichiers (re)téléchargés pendant ce lancement
+UNREACHABLE: list[str] = []            # fichiers dont la source n'a pas répondu : copie en cache gardée
+
+# Les serveurs publics ont des pannes passagères (délai dépassé, erreur 500) : on réessaie
+# après ces attentes (secondes) avant d'abandonner.
+RETRY_DELAYS = (10, 60, 180)
+
+
+def with_retries(fn, what: str):
+    """Appelle fn() et la relance après chaque attente de RETRY_DELAYS si elle échoue sur
+    une erreur réseau passagère (connexion, délai, 5xx, 429). Les autres erreurs HTTP
+    (404…) remontent aussitôt."""
+    for delay in (*RETRY_DELAYS, None):
+        try:
+            return fn()
+        except httpx.HTTPError as e:
+            passagere = (isinstance(e, httpx.TransportError) or isinstance(e, httpx.HTTPStatusError)
+                         and (e.response.status_code >= 500 or e.response.status_code == 429))
+            if delay is None or not passagere:
+                raise
+            print(f"\r  ⚠ {what} : {_raison(e)} — nouvel essai dans {delay} s".ljust(76), flush=True)
+            time.sleep(delay)
+
+
+def _raison(e: httpx.HTTPError) -> str:
+    """Erreur réseau en une ligne courte, pour le journal et le compte rendu."""
+    if isinstance(e, httpx.HTTPStatusError):
+        return f"erreur HTTP {e.response.status_code}"
+    return f"{type(e).__name__} {e}".strip()
+
+
+def get(url: str, timeout: float = 60) -> httpx.Response:
+    """GET avec réessais (pages et catalogues qui donnent l'adresse à jour d'un fichier)."""
+    def once():
+        r = httpx.get(url, timeout=timeout, follow_redirects=True)
+        r.raise_for_status()
+        return r
+    return with_retries(once, url)
 
 
 def _validators(headers) -> dict:
@@ -53,24 +91,10 @@ def _changed_upstream(url: str, dest: Path, known: dict | None) -> bool | None:
     return None   # impossible à dire sans retélécharger
 
 
-def download(url: str, dest_name: str, *, force: bool = False) -> Path:
-    """Télécharge `url` vers data/<dest_name>, avec cache (ne retélécharge pas si présent,
-    sauf avec REFRESH quand la source a changé)."""
-    dest = DATA / dest_name
-    dest.parent.mkdir(parents=True, exist_ok=True)
-    meta = _meta()
-    if dest.exists() and not force:
-        if not REFRESH:
-            return dest
-        change = _changed_upstream(url, dest, meta.get(dest_name))
-        if change is False:
-            return dest
-        print(f"  ↻ {dest_name} : " + ("a changé à la source, nouveau téléchargement" if change
-                                      else "la source ne dit pas si elle a changé, téléchargement pour comparer"))
-    tmp = dest.with_name(dest.name + ".part")
+def _fetch(url: str, tmp: Path, dest_name: str) -> dict:
+    """Télécharge url dans tmp en affichant la progression ; renvoie ses validateurs HTTP."""
     with httpx.stream("GET", url, follow_redirects=True, timeout=300) as r:
         r.raise_for_status()
-        meta[dest_name] = {"url": url, **_validators(r.headers)}
         total = int(r.headers.get("content-length", 0))
         done = 0
         with open(tmp, "wb") as f:
@@ -82,6 +106,42 @@ def download(url: str, dest_name: str, *, force: bool = False) -> Path:
                           f"({done / 1e6:.1f}/{total / 1e6:.1f} Mo)", end="", flush=True)
                 else:  # taille inconnue (certains exports d'API) : juste le volume reçu
                     print(f"\r  ↓ {dest_name}  {done / 1e6:.1f} Mo", end="", flush=True)
+        return _validators(r.headers)
+
+
+def _keep_cache(dest: Path, dest_name: str, err: Exception) -> Path:
+    """--refresh : la source ne répond pas (même après réessais) ; on garde le fichier déjà
+    téléchargé plutôt que d'arrêter toute la mise à jour, et on le signale."""
+    UNREACHABLE.append(dest_name)
+    print(f"\r  ⚠ {dest_name} : source injoignable ({_raison(err)}), copie précédente conservée".ljust(76))
+    return dest
+
+
+def download(url: str, dest_name: str, *, force: bool = False) -> Path:
+    """Télécharge `url` vers data/<dest_name>, avec cache (ne retélécharge pas si présent,
+    sauf avec REFRESH quand la source a changé ; si elle ne répond pas, le cache est gardé)."""
+    dest = DATA / dest_name
+    dest.parent.mkdir(parents=True, exist_ok=True)
+    meta = _meta()
+    if dest.exists() and not force:
+        if not REFRESH:
+            return dest
+        try:
+            change = with_retries(lambda: _changed_upstream(url, dest, meta.get(dest_name)), dest_name)
+        except httpx.HTTPError as e:
+            return _keep_cache(dest, dest_name, e)
+        if change is False:
+            return dest
+        print(f"  ↻ {dest_name} : " + ("a changé à la source, nouveau téléchargement" if change
+                                      else "la source ne dit pas si elle a changé, téléchargement pour comparer"))
+    tmp = dest.with_name(dest.name + ".part")
+    try:
+        meta[dest_name] = {"url": url, **with_retries(lambda: _fetch(url, tmp, dest_name), dest_name)}
+    except httpx.HTTPError as e:
+        tmp.unlink(missing_ok=True)
+        if dest.exists() and not force:
+            return _keep_cache(dest, dest_name, e)
+        raise
     SOURCES_META.write_text(json.dumps(meta, indent=1, ensure_ascii=False))
     # sources sans validateur HTTP (exports d'API) : retéléchargées à chaque --refresh,
     # mais signalées comme changées seulement si leur contenu diffère vraiment
@@ -111,13 +171,7 @@ def extract_zip(zip_path: Path, out_dir: Path) -> None:
 
 def datagouv_resources(dataset_slug: str) -> list[dict]:
     """Ressources d'un jeu de données data.gouv.fr (pour résoudre les URLs à jour)."""
-    r = httpx.get(
-        f"https://www.data.gouv.fr/api/1/datasets/{dataset_slug}/",
-        timeout=60,
-        follow_redirects=True,
-    )
-    r.raise_for_status()
-    return r.json()["resources"]
+    return get(f"https://www.data.gouv.fr/api/1/datasets/{dataset_slug}/").json()["resources"]
 
 
 def tippecanoe_bin() -> str:
