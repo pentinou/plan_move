@@ -8,9 +8,7 @@ from __future__ import annotations
 import json
 import re
 
-import httpx
-
-from common import DATA, WEB_DATA, download, extract_zip
+from common import DATA, WEB_DATA, download, extract_zip, get
 
 PAGE = "https://www.insee.fr/fr/statistiques/8595130"
 TOP_N = 10
@@ -20,8 +18,7 @@ def _resolve() -> str:
     """Adresse du fichier départemental « allégé » le plus récent : l'INSEE remplace
     l'édition précédente sur la même page (prenoms-2024-… puis prenoms-2025-…) et
     l'ancienne adresse renvoie alors une erreur 500."""
-    r = httpx.get(PAGE, timeout=60, follow_redirects=True)
-    r.raise_for_status()
+    r = get(PAGE)
     noms = re.findall(r"fichier/\d+/prenoms-(\d{4})-dpt-allege_csv\.zip", r.text)
     if not noms:
         raise RuntimeError(f"prénoms : fichier départemental introuvable sur {PAGE}")

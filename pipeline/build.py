@@ -47,8 +47,11 @@ def main() -> None:
     if args.refresh:
         print(f"» {len(common.CHANGED)} fichier(s) source (re)téléchargé(s)"
               + (" : " + ", ".join(common.CHANGED) if common.CHANGED else ""))
+        if common.UNREACHABLE:
+            print(f"» ⚠ source(s) injoignable(s), copie précédente conservée : {', '.join(common.UNREACHABLE)}")
         (common.DATA / "refresh.json").write_text(json.dumps(
-            {"date": datetime.datetime.now().isoformat(timespec="seconds"), "changed": common.CHANGED},
+            {"date": datetime.datetime.now().isoformat(timespec="seconds"), "changed": common.CHANGED,
+             "unreachable": common.UNREACHABLE},
             indent=1, ensure_ascii=False))
 
 

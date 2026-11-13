@@ -8,9 +8,7 @@ Dépend de la table `communes` (étape geometries).
 
 from __future__ import annotations
 
-import httpx
-
-from common import DATA, download, extract_zip, replace_source
+from common import DATA, download, extract_zip, get, replace_source
 
 NAIS = "DS_ETAT_CIVIL_NAIS_COMMUNES"
 DECES = "DS_ETAT_CIVIL_DECES_COMMUNES"
@@ -19,8 +17,7 @@ DECES = "DS_ETAT_CIVIL_DECES_COMMUNES"
 def _resolve(dataset: str) -> str:
     """Adresse du CSV d'un jeu Melodi, lue dans son catalogue : le nom du fichier porte
     le millésime (…_2025_CSV_FR) et change à chaque publication annuelle."""
-    r = httpx.get(f"https://api.insee.fr/melodi/catalog/{dataset}", timeout=60, follow_redirects=True)
-    r.raise_for_status()
+    r = get(f"https://api.insee.fr/melodi/catalog/{dataset}")
     for p in r.json().get("product", []):
         if p.get("format") == "CSV" and p.get("accessURL"):
             return p["accessURL"]
