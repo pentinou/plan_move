@@ -54,6 +54,8 @@ rm -rf "$SITE.ancien"
 import json, sys
 r = json.load(open(sys.argv[1])); c = json.load(open(sys.argv[2]))
 print("Sources mises à jour :", ", ".join(r["changed"]) if r["changed"] else "aucune (données inchangées)")
+if r.get("unreachable"):
+    print("SOURCES INJOIGNABLES (données du mois précédent gardées) :", ", ".join(r["unreachable"]))
 for x in c["infos"]: print(x)
 for x in c["avertissements"]: print("À FAIRE :", x)
 PYEOF
